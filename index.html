@@ -1,0 +1,1965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuizMaster Elite – Jigawa Edition</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --j900: #064e3b; --j800: #065f46; --j700: #047857;
+            --gold: #facc15; --slate: #0f172a;
+        }
+        * { font-family: 'Plus Jakarta Sans', sans-serif; box-sizing: border-box; }
+        body { background: #f1f5f9; margin: 0; }
+
+        /* ── Layout ── */
+        .app-header {
+            background: linear-gradient(135deg, var(--j900), var(--j800));
+            color: white; padding: 1rem 2rem;
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 100;
+            box-shadow: 0 4px 6px rgba(0,0,0,.15);
+        }
+        .sidebar {
+            background: white; width: 260px; min-height: calc(100vh - 64px);
+            position: fixed; left: 0; top: 64px;
+            overflow-y: auto; border-right: 1px solid #e2e8f0;
+            padding: 1.5rem 0;
+        }
+        .main-content { margin-left: 260px; padding: 2rem; }
+
+        /* ── Sidebar menu ── */
+        .nav-item {
+            display: flex; align-items: center; gap: .75rem;
+            padding: .75rem 1.25rem; margin: .25rem 1rem;
+            border-radius: .75rem; cursor: pointer; font-weight: 600;
+            color: #64748b; transition: all .2s;
+        }
+        .nav-item:hover { background: #f8fafc; color: var(--j900); transform: translateX(4px); }
+        .nav-item.active {
+            background: linear-gradient(135deg, var(--j900), var(--j800));
+            color: white; box-shadow: 0 4px 12px rgba(6,78,59,.3);
+        }
+
+        /* ── Cards ── */
+        .card {
+            background: white; border: 1px solid #e2e8f0;
+            border-radius: 1rem; padding: 1.5rem; margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,.05); transition: all .3s;
+        }
+        .card:hover { box-shadow: 0 8px 16px rgba(0,0,0,.08); transform: translateY(-2px); }
+        .stat-card {
+            background: white; border-radius: 1rem; padding: 1.75rem;
+            border-left: 4px solid var(--j800);
+            box-shadow: 0 1px 3px rgba(0,0,0,.05); transition: all .3s;
+        }
+        .stat-card:hover { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(6,78,59,.12); }
+
+        /* ── Buttons ── */
+        .btn {
+            display: inline-flex; align-items: center; gap: .5rem;
+            padding: .7rem 1.5rem; border-radius: .75rem; border: none;
+            font-weight: 700; cursor: pointer; transition: all .2s; font-size: .9rem;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn:active { transform: scale(.98); }
+        .btn-primary { background: linear-gradient(135deg,var(--j900),var(--j800)); color: white; box-shadow: 0 4px 6px rgba(6,78,59,.25); }
+        .btn-gold    { background: linear-gradient(135deg,var(--gold),#fbbf24);     color: var(--j900); }
+        .btn-danger  { background: #ef4444; color: white; padding: .5rem 1rem; border-radius: .5rem; font-size:.85rem; }
+        .btn-secondary { background: #f1f5f9; color: var(--slate); border: 1px solid #e2e8f0; }
+        .btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+        /* ── Form ── */
+        .form-label { display: block; margin-bottom: .5rem; font-weight: 600; color: var(--slate); font-size:.875rem; }
+        .form-input {
+            width: 100%; padding: .75rem 1rem; border: 2px solid #e2e8f0;
+            border-radius: .75rem; font-size: .95rem; font-family: inherit;
+            transition: border-color .2s;
+        }
+        .form-input:focus { outline: none; border-color: var(--j800); box-shadow: 0 0 0 3px rgba(6,95,70,.1); }
+        select.form-input {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23064e3b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right .75rem center; background-size: 1.2rem;
+            padding-right: 2.5rem;
+        }
+
+        /* ── Badges ── */
+        .badge {
+            display: inline-flex; align-items: center; gap: .25rem;
+            padding: .3rem .75rem; border-radius: 9999px;
+            font-size: .72rem; font-weight: 700; text-transform: uppercase;
+        }
+        .badge-green  { background: #d1fae5; color: #065f46; }
+        .badge-yellow { background: #fef3c7; color: #92400e; }
+        .badge-red    { background: #fee2e2; color: #991b1b; }
+        .badge-blue   { background: #dbeafe; color: #1e40af; }
+        .badge-dark   { background: var(--j900); color: white; }
+
+        /* ── Table ── */
+        .data-table { width: 100%; border-collapse: separate; border-spacing: 0; border-radius: .75rem; overflow: hidden; }
+        .data-table thead { background: linear-gradient(135deg,var(--j900),var(--j800)); color: white; }
+        .data-table th { padding: .9rem 1.1rem; text-align: left; font-weight: 700; font-size:.75rem; text-transform: uppercase; letter-spacing:.05em; }
+        .data-table td { padding: .9rem 1.1rem; border-top: 1px solid #f1f5f9; font-size:.9rem; }
+        .data-table tbody tr:hover { background: #f8fafc; }
+
+        /* ── Modal ── */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,.55);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1000; backdrop-filter: blur(4px);
+            animation: fadeIn .2s ease;
+        }
+        .modal-box {
+            background: white; border-radius: 1rem; padding: 2rem;
+            max-width: 620px; width: 92%; max-height: 90vh; overflow-y: auto;
+            animation: slideUp .25s ease;
+        }
+        @keyframes fadeIn  { from{opacity:0}    to{opacity:1} }
+        @keyframes slideUp { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
+
+        /* ── Quiz option ── */
+        .quiz-opt {
+            border: 2px solid #e2e8f0; padding: 1rem 1.25rem;
+            border-radius: .75rem; cursor: pointer; margin-bottom: .6rem;
+            display: flex; align-items: center; gap: .75rem;
+            font-weight: 500; transition: all .2s;
+        }
+        .quiz-opt:hover  { border-color: var(--j700); transform: translateX(4px); }
+        .quiz-opt.sel    { background: linear-gradient(135deg,var(--j900),var(--j800)); color: white; border-color: var(--j900); }
+        .quiz-opt.correct{ background: #d1fae5; border-color: #10b981; }
+        .quiz-opt.wrong  { background: #fee2e2; border-color: #ef4444; }
+
+        /* ── Page header banner ── */
+        .pg-header {
+            background: linear-gradient(135deg,var(--j900),var(--j800));
+            color: white; padding: 1.75rem 2rem; border-radius: 1rem; margin-bottom: 1.75rem;
+        }
+        .pg-header h1 { margin:0; font-size:1.75rem; font-weight:900; letter-spacing:-.04em; }
+        .pg-header p  { margin:.4rem 0 0; opacity:.88; }
+
+        /* ── Progress bar ── */
+        .progress-bar { background: #e2e8f0; border-radius: 9999px; height: 8px; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 9999px; transition: width .5s; }
+
+        /* Spinner */
+        .spinner {
+            border: 4px solid rgba(6,78,59,.1); border-left-color: var(--j900);
+            border-radius: 50%; width: 48px; height: 48px;
+            animation: spin 1s linear infinite; margin: auto;
+        }
+        @keyframes spin { to{transform:rotate(360deg)} }
+
+        /* Checkbox wrapper */
+        .check-row {
+            display: flex; align-items: center; gap: .75rem; padding: .75rem 1rem;
+            border-radius: .75rem; border: 1px solid #e2e8f0; margin-bottom: .5rem;
+            cursor: pointer; transition: background .15s;
+        }
+        .check-row.checked { background: #d1fae5; }
+        .check-row input[type=checkbox] { width:1.2rem; height:1.2rem; accent-color:var(--j900); cursor:pointer; }
+
+        /* Timer */
+        .timer { font-size: 1.5rem; font-weight: 900; color: var(--j900); }
+        .timer.warning { color: #ef4444; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+        ::-webkit-scrollbar { width:8px; }
+        ::-webkit-scrollbar-track { background:#f1f5f9; }
+        ::-webkit-scrollbar-thumb { background:var(--j800); border-radius:4px; }
+
+        /* ════════════════════════════════════════════════════════
+           LANDING PAGE
+        ════════════════════════════════════════════════════════ */
+        .lp { font-family: 'Plus Jakarta Sans', sans-serif; background: #050c0a; color: white; overflow-x: hidden; }
+        .lp-display { font-family: 'Syne', sans-serif; }
+
+        /* ── Noise overlay ── */
+        .lp::before {
+            content: '';
+            position: fixed; inset: 0; z-index: 0; pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+            opacity: 0.4;
+        }
+
+        /* ── LP Nav ── */
+        .lp-nav {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 999;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 1.25rem 5%;
+            transition: all .4s ease;
+        }
+        .lp-nav.scrolled {
+            background: rgba(5,12,10,.88);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(250,204,21,.12);
+            padding: .9rem 5%;
+        }
+        .lp-nav-logo {
+            display: flex; align-items: center; gap: .75rem;
+            font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.3rem;
+        }
+        .lp-nav-logo-icon {
+            width: 40px; height: 40px; background: var(--gold);
+            border-radius: 10px; display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem; color: #050c0a;
+            box-shadow: 0 0 20px rgba(250,204,21,.4);
+        }
+        .lp-nav-links { display: flex; gap: 2.5rem; }
+        .lp-nav-links a {
+            color: rgba(255,255,255,.7); text-decoration: none; font-size: .9rem;
+            font-weight: 500; letter-spacing: .02em; transition: color .2s;
+        }
+        .lp-nav-links a:hover { color: var(--gold); }
+        .lp-nav-cta {
+            background: var(--gold); color: #050c0a;
+            padding: .6rem 1.5rem; border-radius: 9999px;
+            font-weight: 700; font-size: .9rem; border: none; cursor: pointer;
+            transition: all .2s; box-shadow: 0 0 24px rgba(250,204,21,.3);
+        }
+        .lp-nav-cta:hover { transform: scale(1.05); box-shadow: 0 0 36px rgba(250,204,21,.5); }
+
+        /* ── HERO ── */
+        .lp-hero {
+            min-height: 100vh; position: relative; overflow: hidden;
+            display: flex; align-items: center;
+            padding: 120px 5% 80px;
+        }
+        .lp-hero-grid {
+            position: absolute; inset: 0; z-index: 0;
+            background-image:
+                linear-gradient(rgba(250,204,21,.06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(250,204,21,.06) 1px, transparent 1px);
+            background-size: 60px 60px;
+            mask-image: radial-gradient(ellipse 80% 60% at 50% 50%, black 40%, transparent 100%);
+        }
+        .lp-hero-glow {
+            position: absolute; border-radius: 50%; filter: blur(120px); pointer-events: none;
+        }
+        .lp-hero-glow-1 { width: 600px; height: 600px; background: rgba(6,78,59,.5); top: -100px; right: -100px; }
+        .lp-hero-glow-2 { width: 400px; height: 400px; background: rgba(250,204,21,.12); bottom: 0; left: 10%; }
+        .lp-hero-glow-3 { width: 300px; height: 300px; background: rgba(4,120,87,.3); top: 30%; left: -50px; }
+
+        .lp-hero-content { position: relative; z-index: 2; max-width: 700px; }
+        .lp-hero-eyebrow {
+            display: inline-flex; align-items: center; gap: .5rem;
+            background: rgba(250,204,21,.1); border: 1px solid rgba(250,204,21,.3);
+            color: var(--gold); padding: .4rem 1rem; border-radius: 9999px;
+            font-size: .8rem; font-weight: 700; letter-spacing: .08em;
+            text-transform: uppercase; margin-bottom: 2rem;
+            animation: fadeSlideUp .8s ease both;
+        }
+        .lp-hero-eyebrow-dot {
+            width: 6px; height: 6px; background: var(--gold); border-radius: 50%;
+            animation: pulse-dot 2s ease infinite;
+        }
+        @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+
+        .lp-hero-h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(3rem, 7vw, 6rem);
+            font-weight: 800; line-height: 1.02; letter-spacing: -.04em;
+            margin: 0 0 1.5rem; color: white;
+            animation: fadeSlideUp .8s .15s ease both;
+        }
+        .lp-hero-h1 em {
+            font-style: normal;
+            background: linear-gradient(135deg, var(--gold), #fb923c);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .lp-hero-sub {
+            font-size: 1.15rem; color: rgba(255,255,255,.6); line-height: 1.7;
+            max-width: 520px; margin: 0 0 2.5rem;
+            animation: fadeSlideUp .8s .3s ease both;
+        }
+        .lp-hero-actions {
+            display: flex; gap: 1rem; flex-wrap: wrap;
+            animation: fadeSlideUp .8s .45s ease both;
+        }
+        .lp-btn-hero-primary {
+            background: linear-gradient(135deg, var(--gold), #fb923c);
+            color: #050c0a; padding: .9rem 2.25rem; border-radius: 9999px;
+            font-weight: 800; font-size: 1rem; border: none; cursor: pointer;
+            display: inline-flex; align-items: center; gap: .6rem;
+            box-shadow: 0 8px 32px rgba(250,204,21,.35);
+            transition: all .25s; letter-spacing: -.01em;
+        }
+        .lp-btn-hero-primary:hover { transform: translateY(-3px); box-shadow: 0 16px 48px rgba(250,204,21,.45); }
+        .lp-btn-hero-secondary {
+            background: transparent; color: white;
+            padding: .9rem 2.25rem; border-radius: 9999px;
+            font-weight: 700; font-size: 1rem; cursor: pointer;
+            border: 1.5px solid rgba(255,255,255,.25);
+            display: inline-flex; align-items: center; gap: .6rem;
+            transition: all .25s;
+        }
+        .lp-btn-hero-secondary:hover { border-color: rgba(255,255,255,.6); background: rgba(255,255,255,.05); }
+
+        /* floating cards */
+        .lp-hero-visual {
+            position: absolute; right: 5%; top: 50%; transform: translateY(-50%);
+            z-index: 2; width: 380px;
+            animation: fadeSlideUp .8s .5s ease both;
+        }
+        .lp-float-card {
+            background: rgba(255,255,255,.04);
+            border: 1px solid rgba(255,255,255,.1);
+            border-radius: 16px; padding: 1.25rem 1.5rem;
+            backdrop-filter: blur(20px);
+            position: absolute; width: 320px;
+        }
+        .lp-float-card-main {
+            position: relative; top: 0; left: 0;
+            animation: floatCard 5s ease-in-out infinite;
+        }
+        .lp-float-card-2 {
+            top: -60px; right: -30px; width: 200px;
+            animation: floatCard 5s 1s ease-in-out infinite;
+        }
+        .lp-float-card-3 {
+            bottom: -50px; left: -20px; width: 220px;
+            animation: floatCard 5s 2s ease-in-out infinite;
+        }
+        @keyframes floatCard {
+            0%,100%{transform:translateY(0) rotate(0deg)}
+            33%{transform:translateY(-10px) rotate(.5deg)}
+            66%{transform:translateY(6px) rotate(-.3deg)}
+        }
+
+        .lp-hero-stats {
+            display: flex; gap: 2.5rem; margin-top: 3rem;
+            animation: fadeSlideUp .8s .6s ease both;
+        }
+        .lp-stat-item { }
+        .lp-stat-num { font-family:'Syne',sans-serif; font-size:2rem; font-weight:800; color:var(--gold); line-height:1; }
+        .lp-stat-lbl { font-size:.78rem; color:rgba(255,255,255,.5); font-weight:500; margin-top:.25rem; letter-spacing:.04em; text-transform:uppercase; }
+
+        /* ── FEATURES ── */
+        .lp-section { padding: 100px 5%; position: relative; }
+        .lp-section-label {
+            display: inline-flex; align-items: center; gap: .5rem;
+            color: var(--gold); font-size: .78rem; font-weight: 700; letter-spacing: .12em;
+            text-transform: uppercase; margin-bottom: 1rem;
+        }
+        .lp-section-label::before, .lp-section-label::after {
+            content:''; display:block; width:30px; height:1px; background:var(--gold); opacity:.5;
+        }
+        .lp-section-h2 {
+            font-family:'Syne',sans-serif; font-size:clamp(2rem,4vw,3.2rem);
+            font-weight:800; line-height:1.1; letter-spacing:-.03em; margin:0 0 1rem;
+        }
+        .lp-section-sub { color:rgba(255,255,255,.5); font-size:1.05rem; line-height:1.7; max-width:500px; }
+
+        .lp-features-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5px; margin-top: 5rem;
+            border: 1.5px solid rgba(255,255,255,.07); border-radius: 20px; overflow: hidden;
+        }
+        .lp-feat {
+            padding: 2.5rem; background: rgba(255,255,255,.025);
+            transition: background .3s; position: relative; overflow: hidden;
+        }
+        .lp-feat::before {
+            content:''; position:absolute; inset:0;
+            background:linear-gradient(135deg,rgba(250,204,21,.06),transparent);
+            opacity:0; transition:opacity .3s;
+        }
+        .lp-feat:hover::before { opacity:1; }
+        .lp-feat:hover { background: rgba(255,255,255,.04); }
+        .lp-feat-icon {
+            width:52px; height:52px; border-radius:14px;
+            display:flex; align-items:center; justify-content:center;
+            font-size:1.3rem; margin-bottom:1.5rem;
+            background:linear-gradient(135deg,rgba(250,204,21,.15),rgba(250,204,21,.05));
+            border:1px solid rgba(250,204,21,.2); color:var(--gold);
+        }
+        .lp-feat h3 { font-family:'Syne',sans-serif; font-size:1.15rem; font-weight:700; margin:0 0 .75rem; }
+        .lp-feat p  { color:rgba(255,255,255,.5); font-size:.9rem; line-height:1.7; margin:0; }
+
+        /* ── HOW IT WORKS ── */
+        .lp-how { background: rgba(255,255,255,.02); }
+        .lp-steps {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 2rem; margin-top: 4rem;
+        }
+        .lp-step { position: relative; text-align: center; padding: 2rem 1.5rem; }
+        .lp-step-num {
+            font-family:'Syne',sans-serif; font-size:5rem; font-weight:800; line-height:1;
+            color:rgba(250,204,21,.08); position:absolute; top:0; left:50%; transform:translateX(-50%);
+            pointer-events:none; user-select:none;
+        }
+        .lp-step-icon {
+            width:64px; height:64px; border-radius:50%; border:2px solid rgba(250,204,21,.3);
+            display:flex; align-items:center; justify-content:center;
+            font-size:1.4rem; color:var(--gold); margin:1rem auto 1.25rem; position:relative; z-index:1;
+            background:rgba(250,204,21,.07);
+        }
+        .lp-step h3 { font-family:'Syne',sans-serif; font-weight:700; margin:0 0 .5rem; font-size:1.1rem; }
+        .lp-step p  { color:rgba(255,255,255,.5); font-size:.88rem; line-height:1.65; margin:0; }
+        .lp-step-connector {
+            position:absolute; top:50px; right:-1rem; width:2rem; height:2px;
+            background:linear-gradient(90deg,rgba(250,204,21,.3),transparent);
+        }
+
+        /* ── SUBJECTS TICKER ── */
+        .lp-ticker-wrap { overflow: hidden; padding: 1.5rem 0; border-top:1px solid rgba(255,255,255,.07); border-bottom:1px solid rgba(255,255,255,.07); }
+        .lp-ticker-track {
+            display:flex; gap:2.5rem; width:max-content;
+            animation: ticker 22s linear infinite;
+        }
+        .lp-ticker-item {
+            display:flex; align-items:center; gap:.75rem; white-space:nowrap;
+            font-weight:600; font-size:1rem; color:rgba(255,255,255,.35);
+            letter-spacing:.03em;
+        }
+        .lp-ticker-item span { color:var(--gold); }
+        @keyframes ticker { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+
+        /* ── TESTIMONIAL ── */
+        .lp-testimonials { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:1.5rem; margin-top:4rem; }
+        .lp-testi {
+            background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08);
+            border-radius:20px; padding:2rem;
+            transition: border-color .3s;
+        }
+        .lp-testi:hover { border-color:rgba(250,204,21,.25); }
+        .lp-testi-quote { font-size:1rem; line-height:1.75; color:rgba(255,255,255,.75); margin-bottom:1.5rem; font-style:italic; }
+        .lp-testi-stars { color:var(--gold); font-size:.85rem; margin-bottom:1rem; letter-spacing:.1em; }
+        .lp-testi-author { display:flex; align-items:center; gap:.75rem; }
+        .lp-testi-avatar {
+            width:42px; height:42px; border-radius:50%;
+            display:flex; align-items:center; justify-content:center;
+            font-weight:800; font-size:1rem; font-family:'Syne',sans-serif;
+            flex-shrink:0;
+        }
+        .lp-testi-name { font-weight:700; font-size:.9rem; }
+        .lp-testi-role { font-size:.78rem; color:rgba(255,255,255,.4); }
+
+        /* ── CTA BANNER ── */
+        .lp-cta-section {
+            margin: 0 5% 100px; border-radius: 28px; overflow: hidden; position: relative;
+            background: linear-gradient(135deg, #0a2e20 0%, #064e3b 50%, #0a2e20 100%);
+            border: 1px solid rgba(250,204,21,.2);
+        }
+        .lp-cta-section::before {
+            content:''; position:absolute; inset:0;
+            background:
+                radial-gradient(ellipse 60% 80% at 80% 50%, rgba(250,204,21,.08) 0%, transparent 70%),
+                radial-gradient(ellipse 40% 60% at 20% 50%, rgba(4,120,87,.2) 0%, transparent 70%);
+        }
+        .lp-cta-inner { position:relative; z-index:1; padding:5rem; text-align:center; }
+        .lp-cta-h2 { font-family:'Syne',sans-serif; font-size:clamp(2rem,4.5vw,3.5rem); font-weight:800; letter-spacing:-.04em; margin:0 0 1rem; }
+        .lp-cta-sub { color:rgba(255,255,255,.6); font-size:1.1rem; max-width:500px; margin:0 auto 2.5rem; }
+        .lp-cta-actions { display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; }
+
+        /* ── FOOTER ── */
+        .lp-footer {
+            border-top: 1px solid rgba(255,255,255,.07);
+            padding: 4rem 5% 2.5rem;
+        }
+        .lp-footer-top { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:3rem; margin-bottom:3rem; }
+        .lp-footer-brand-desc { color:rgba(255,255,255,.4); font-size:.88rem; line-height:1.7; margin-top:.75rem; max-width:280px; }
+        .lp-footer-col h4 { font-family:'Syne',sans-serif; font-weight:700; font-size:.85rem; letter-spacing:.08em; text-transform:uppercase; color:rgba(255,255,255,.35); margin:0 0 1.25rem; }
+        .lp-footer-col ul { list-style:none; padding:0; margin:0; }
+        .lp-footer-col ul li { margin-bottom:.6rem; }
+        .lp-footer-col ul li a { color:rgba(255,255,255,.55); text-decoration:none; font-size:.88rem; transition:color .2s; }
+        .lp-footer-col ul li a:hover { color:var(--gold); }
+        .lp-footer-bottom { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; padding-top:2rem; border-top:1px solid rgba(255,255,255,.06); }
+        .lp-footer-copy { color:rgba(255,255,255,.3); font-size:.82rem; }
+        .lp-footer-socials { display:flex; gap:1rem; }
+        .lp-social-btn {
+            width:36px; height:36px; border-radius:50%; border:1px solid rgba(255,255,255,.15);
+            display:flex; align-items:center; justify-content:center;
+            color:rgba(255,255,255,.4); font-size:.85rem; cursor:pointer;
+            transition:all .2s;
+        }
+        .lp-social-btn:hover { border-color:var(--gold); color:var(--gold); }
+
+        /* ── ANIMATIONS ── */
+        @keyframes fadeSlideUp {
+            from { opacity:0; transform: translateY(24px); }
+            to   { opacity:1; transform: translateY(0); }
+        }
+        .lp-reveal { opacity:0; transform:translateY(30px); transition:opacity .7s ease, transform .7s ease; }
+        .lp-reveal.visible { opacity:1; transform:translateY(0); }
+        .lp-reveal-delay-1 { transition-delay:.1s; }
+        .lp-reveal-delay-2 { transition-delay:.2s; }
+        .lp-reveal-delay-3 { transition-delay:.3s; }
+        .lp-reveal-delay-4 { transition-delay:.4s; }
+
+        @media (max-width: 900px) {
+            .lp-hero-visual { display:none; }
+            .lp-hero-content { max-width:100%; }
+            .lp-footer-top { grid-template-columns:1fr 1fr; }
+            .lp-nav-links  { display:none; }
+            .lp-cta-inner  { padding:3rem 2rem; }
+        }
+    </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ── API base – auto-detects Codespaces vs localhost ────────────────────────
+const API_BASE = (() => {
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return 'http://localhost:5000/api';
+    }
+    // GitHub Codespaces: replace port 80/443 with 5000 in the forwarded URL
+    const { protocol, hostname } = window.location;
+    return `${protocol}//${hostname.replace('-80.', '-5000.')}/api`;
+})();
+
+const api = {
+    get:  (path)       => fetch(`${API_BASE}${path}`)                                           .then(r => r.json()),
+    post: (path, body) => fetch(`${API_BASE}${path}`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) }).then(r => r.json()),
+    del:  (path)       => fetch(`${API_BASE}${path}`, { method:'DELETE' })                      .then(r => r.json()),
+};
+
+// ── Tiny helpers ────────────────────────────────────────────────────────────
+const Spinner = () => (
+    <div style={{display:'flex',justifyContent:'center',alignItems:'center',minHeight:'200px'}}>
+        <div className="spinner"></div>
+    </div>
+);
+
+const Modal = ({ open, onClose, title, children, wide }) => {
+    if (!open) return null;
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-box" style={wide?{maxWidth:'800px'}:{}} onClick={e=>e.stopPropagation()}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1.5rem'}}>
+                    <h2 style={{margin:0,fontSize:'1.4rem',fontWeight:900,color:'var(--j900)'}}>{title}</h2>
+                    <button onClick={onClose} style={{background:'none',border:'none',fontSize:'1.5rem',cursor:'pointer',color:'#64748b'}}>
+                        <i className="fas fa-times"></i>
+                    </button>
+                </div>
+                {children}
+            </div>
+        </div>
+    );
+};
+
+const Badge = ({ type='dark', children }) => <span className={`badge badge-${type}`}>{children}</span>;
+
+const statusBadge = (status) => {
+    const map = { live:'green', upcoming:'yellow', completed:'blue', practice:'dark' };
+    return <Badge type={map[status]||'dark'}>{status}</Badge>;
+};
+
+// ── Login ───────────────────────────────────────────────────────────────────
+const LoginPage = ({ onLogin }) => {
+    const [form, setForm] = useState({ username:'', password:'' });
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    const submit = async (e) => {
+        e.preventDefault();
+        setLoading(true); setError('');
+        try {
+            const data = await api.post('/auth/login', form);
+            if (data.success) {
+                localStorage.setItem('qm_user', JSON.stringify(data.user));
+                onLogin(data.user);
+            } else {
+                setError(data.error || 'Invalid credentials');
+            }
+        } catch {
+            setError('Cannot reach server – is the backend running?');
+        }
+        setLoading(false);
+    };
+
+    return (
+        <div style={{minHeight:'100vh',background:'linear-gradient(135deg,var(--j900),var(--j800))',display:'flex',alignItems:'center',justifyContent:'center',padding:'1rem'}}>
+            <div className="card" style={{maxWidth:'420px',width:'100%'}}>
+                <div style={{textAlign:'center',marginBottom:'2rem'}}>
+                    <div style={{width:64,height:64,background:'var(--gold)',borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 1rem',fontSize:'2rem',color:'var(--j900)'}}>
+                        <i className="fas fa-trophy"></i>
+                    </div>
+                    <h1 style={{fontSize:'1.875rem',fontWeight:900,color:'var(--j900)',margin:'0 0 .25rem'}}>QuizMaster Elite</h1>
+                    <p style={{color:'#64748b',margin:0,fontWeight:500}}>Jigawa State Edition</p>
+                </div>
+                <form onSubmit={submit}>
+                    {['username','password'].map(f => (
+                        <div key={f} style={{marginBottom:'1rem'}}>
+                            <label className="form-label"><i className={`fas fa-${f==='username'?'user':'lock'}`} style={{marginRight:'.5rem'}}></i>{f.charAt(0).toUpperCase()+f.slice(1)}</label>
+                            <input type={f==='password'?'password':'text'} className="form-input"
+                                placeholder={`Enter your ${f}`}
+                                value={form[f]} onChange={e=>setForm({...form,[f]:e.target.value})} required />
+                        </div>
+                    ))}
+                    {error && <div style={{background:'#fee2e2',color:'#991b1b',padding:'.75rem',borderRadius:'.75rem',marginBottom:'1rem'}}><i className="fas fa-exclamation-circle" style={{marginRight:'.5rem'}}></i>{error}</div>}
+                    <button type="submit" className="btn btn-primary" style={{width:'100%',justifyContent:'center'}} disabled={loading}>
+                        {loading ? <><i className="fas fa-circle-notch fa-spin"></i> Signing in…</> : <><i className="fas fa-sign-in-alt"></i> Sign In</>}
+                    </button>
+                </form>
+                <div style={{marginTop:'1.5rem',padding:'1rem',background:'#f8fafc',borderRadius:'.75rem',border:'1px solid #e2e8f0',fontSize:'.8rem',color:'#475569'}}>
+                    <div style={{fontWeight:700,marginBottom:'.5rem',color:'#64748b'}}><i className="fas fa-info-circle" style={{marginRight:'.4rem'}}></i>Demo Credentials</div>
+                    <div><i className="fas fa-user-shield" style={{marginRight:'.4rem',color:'var(--j900)'}}></i>Admin: <strong>admin / admin123</strong></div>
+                    <div style={{marginTop:'.25rem'}}><i className="fas fa-user-graduate" style={{marginRight:'.4rem',color:'var(--j900)'}}></i>Student: <strong>student1 / student123</strong></div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ── Dashboard Shell ─────────────────────────────────────────────────────────
+const DashboardLayout = ({ user, activeMenu, setActiveMenu, onLogout, children }) => {
+    const isAdmin = user.role === 'admin';
+    const menus = isAdmin ? [
+        { id:'overview',      label:'Dashboard',     icon:'fa-chart-line' },
+        { id:'students',      label:'Students',       icon:'fa-user-graduate' },
+        { id:'questions',     label:'Question Bank',  icon:'fa-question-circle' },
+        { id:'competitions',  label:'Competitions',   icon:'fa-trophy' },
+        { id:'analytics',     label:'Analytics',      icon:'fa-chart-pie' },
+    ] : [
+        { id:'overview',      label:'Dashboard',      icon:'fa-home' },
+        { id:'competitions',  label:'My Competitions',icon:'fa-trophy' },
+        { id:'practice',      label:'Practice Quiz',  icon:'fa-pen' },
+        { id:'results',       label:'My Results',     icon:'fa-chart-bar' },
+    ];
+
+    return (
+        <div>
+            <header className="app-header">
+                <div style={{display:'flex',alignItems:'center',gap:'1rem'}}>
+                    <div style={{width:44,height:44,background:'var(--gold)',borderRadius:10,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'1.3rem',color:'var(--j900)'}}>
+                        <i className="fas fa-trophy"></i>
+                    </div>
+                    <div>
+                        <div style={{fontWeight:900,fontSize:'1.2rem'}}>QuizMaster Elite</div>
+                        <div style={{fontSize:'.72rem',opacity:.85}}>Jigawa State Edition</div>
+                    </div>
+                </div>
+                <div style={{display:'flex',alignItems:'center',gap:'1.5rem'}}>
+                    <div style={{textAlign:'right'}}>
+                        <div style={{fontWeight:700}}><i className={`fas ${isAdmin?'fa-user-shield':'fa-user-graduate'}`} style={{marginRight:'.5rem'}}></i>{user.full_name}</div>
+                        <div style={{fontSize:'.75rem',opacity:.8}}>{isAdmin?'Administrator':user.school}</div>
+                    </div>
+                    <button onClick={onLogout} className="btn btn-gold"><i className="fas fa-sign-out-alt"></i>Logout</button>
+                </div>
+            </header>
+
+            <aside className="sidebar">
+                {menus.map(m => (
+                    <div key={m.id} className={`nav-item ${activeMenu===m.id?'active':''}`} onClick={()=>setActiveMenu(m.id)}>
+                        <i className={`fas ${m.icon}`} style={{width:20,textAlign:'center'}}></i>
+                        <span>{m.label}</span>
+                    </div>
+                ))}
+            </aside>
+
+            <main className="main-content">{children}</main>
+        </div>
+    );
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ADMIN PAGES
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── Admin Overview ──────────────────────────────────────────────────────────
+const AdminOverview = () => {
+    const [stats, setStats] = useState(null);
+    useEffect(() => { api.get('/analytics/dashboard').then(setStats); }, []);
+    if (!stats) return <Spinner />;
+
+    return (
+        <div>
+            <div className="pg-header"><h1><i className="fas fa-chart-line" style={{marginRight:'.75rem'}}></i>Dashboard Overview</h1><p>Welcome to QuizMaster Elite Administration</p></div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:'1.5rem',marginBottom:'2rem'}}>
+                {[
+                    {label:'Total Students',   value:stats.total_students,      icon:'fa-user-graduate', color:'var(--j900)'},
+                    {label:'Competitions',      value:stats.total_competitions,  icon:'fa-trophy',        color:'var(--j800)'},
+                    {label:'Question Bank',     value:stats.total_questions,     icon:'fa-question-circle',color:'var(--j700)'},
+                    {label:'Active Quizzes',    value:stats.active_competitions, icon:'fa-bolt',          color:'#10b981'},
+                ].map(s => (
+                    <div key={s.label} className="stat-card">
+                        <div style={{fontSize:'.75rem',fontWeight:700,color:'#64748b',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:'.5rem'}}>
+                            <i className={`fas ${s.icon}`} style={{marginRight:'.5rem',color:s.color}}></i>{s.label}
+                        </div>
+                        <div style={{fontSize:'2.5rem',fontWeight:900,color:s.color,letterSpacing:'-.05em'}}>{s.value}</div>
+                    </div>
+                ))}
+            </div>
+
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))',gap:'1.5rem'}}>
+                <div className="card">
+                    <h3 style={{fontSize:'1.1rem',fontWeight:900,color:'var(--j900)',marginTop:0,marginBottom:'1rem'}}><i className="fas fa-book" style={{marginRight:'.5rem'}}></i>Questions by Subject</h3>
+                    {stats.subjects.map(s => (
+                        <div key={s.name} style={{display:'flex',justifyContent:'space-between',padding:'.75rem 0',borderBottom:'1px solid #f1f5f9'}}>
+                            <span style={{fontWeight:600}}>{s.name}</span>
+                            <Badge type="dark">{s.count}</Badge>
+                        </div>
+                    ))}
+                </div>
+
+                {stats.top_performers.length > 0 && (
+                    <div className="card">
+                        <h3 style={{fontSize:'1.1rem',fontWeight:900,color:'var(--j900)',marginTop:0,marginBottom:'1rem'}}><i className="fas fa-medal" style={{marginRight:'.5rem'}}></i>Top Performers</h3>
+                        {stats.top_performers.map((p,i) => (
+                            <div key={i} style={{display:'flex',alignItems:'center',gap:'.75rem',padding:'.75rem 0',borderBottom:'1px solid #f1f5f9'}}>
+                                <span style={{fontWeight:900,color:['#facc15','#94a3b8','#cd7f32'][i]||'var(--j900)',fontSize:'1.1rem'}}>#{i+1}</span>
+                                <div style={{flex:1}}>
+                                    <div style={{fontWeight:600}}>{p.name}</div>
+                                    <div style={{fontSize:'.8rem',color:'#64748b'}}>{p.school}</div>
+                                </div>
+                                <Badge type="dark">{p.total_points} pts</Badge>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+// ── Student Management ───────────────────────────────────────────────────────
+const StudentManagement = () => {
+    const [students, setStudents] = useState([]);
+    const [showModal, setShowModal] = useState(false);
+    const [createdCreds, setCreatedCreds] = useState(null);
+    const [form, setForm] = useState({ username:'', email:'', full_name:'', school:'', student_level:'Secondary School' });
+    const [loading, setLoading] = useState(false);
+
+    const load = () => api.get('/admin/users').then(d => setStudents(d.filter(u=>u.role==='student')));
+    useEffect(() => { load(); }, []);
+
+    const create = async (e) => {
+        e.preventDefault(); setLoading(true);
+        const data = await api.post('/admin/users', form);
+        setLoading(false);
+        if (data.success) { setCreatedCreds(data); load(); setForm({username:'',email:'',full_name:'',school:'',student_level:'Secondary School'}); }
+        else alert('Error: ' + data.error);
+    };
+
+    const del = async (id) => {
+        if (!confirm('Deactivate this student?')) return;
+        await api.del(`/admin/users/${id}`);
+        load();
+    };
+
+    return (
+        <div>
+            <div className="pg-header" style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:'1rem'}}>
+                <div><h1 style={{margin:0}}><i className="fas fa-user-graduate" style={{marginRight:'.75rem'}}></i>Student Management</h1><p style={{margin:'.25rem 0 0'}}>Manage student accounts and access</p></div>
+                <button className="btn btn-gold" onClick={()=>{setShowModal(true);setCreatedCreds(null);}}><i className="fas fa-user-plus"></i>Add Student</button>
+            </div>
+
+            <div className="card" style={{padding:0,overflow:'hidden'}}>
+                <table className="data-table">
+                    <thead><tr><th>Full Name</th><th>Username</th><th>School</th><th>Level</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        {students.length===0 && <tr><td colSpan="6" style={{textAlign:'center',color:'#64748b',padding:'2rem'}}>No students found</td></tr>}
+                        {students.map(s => (
+                            <tr key={s.id}>
+                                <td style={{fontWeight:600}}>{s.full_name}</td>
+                                <td>{s.username}</td>
+                                <td>{s.school}</td>
+                                <td><Badge type="blue">{s.student_level}</Badge></td>
+                                <td><Badge type={s.is_active?'green':'yellow'}>{s.is_active?'Active':'Inactive'}</Badge></td>
+                                <td><button onClick={()=>del(s.id)} className="btn btn-danger"><i className="fas fa-trash"></i>Remove</button></td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+
+            <Modal open={showModal} onClose={()=>{setShowModal(false);setCreatedCreds(null);}} title={createdCreds?'Student Created!':'Add New Student'}>
+                {createdCreds ? (
+                    <div>
+                        <div style={{background:'#d1fae5',border:'2px solid #10b981',borderRadius:'.75rem',padding:'1.5rem',marginBottom:'1rem'}}>
+                            <div style={{fontWeight:700,color:'#065f46',marginBottom:'.75rem'}}><i className="fas fa-check-circle" style={{marginRight:'.5rem'}}></i>Student account created!</div>
+                            <div><strong>Username:</strong> {createdCreds.username}</div>
+                            <div><strong>Password:</strong> <code style={{background:'white',padding:'.2rem .5rem',borderRadius:'.25rem'}}>{createdCreds.password}</code></div>
+                            <div style={{fontSize:'.8rem',color:'#047857',marginTop:'.5rem'}}>⚠ Save this password – it won't be shown again.</div>
+                        </div>
+                        <button className="btn btn-primary" style={{width:'100%',justifyContent:'center'}} onClick={()=>{setShowModal(false);setCreatedCreds(null);}}>Done</button>
+                    </div>
+                ) : (
+                    <form onSubmit={create}>
+                        {[['Full Name','full_name','text'],['Username','username','text'],['Email','email','email'],['School','school','text']].map(([label,key,type])=>(
+                            <div key={key} style={{marginBottom:'1rem'}}>
+                                <label className="form-label">{label}</label>
+                                <input type={type} className="form-input" value={form[key]} onChange={e=>setForm({...form,[key]:e.target.value})} required />
+                            </div>
+                        ))}
+                        <div style={{marginBottom:'1.25rem'}}>
+                            <label className="form-label">Student Level</label>
+                            <select className="form-input" value={form.student_level} onChange={e=>setForm({...form,student_level:e.target.value})}>
+                                <option>Primary School</option><option>Secondary School</option>
+                            </select>
+                        </div>
+                        <button type="submit" className="btn btn-primary" style={{width:'100%',justifyContent:'center'}} disabled={loading}>
+                            {loading?<><i className="fas fa-circle-notch fa-spin"></i>Creating…</>:<><i className="fas fa-check"></i>Create Student</>}
+                        </button>
+                    </form>
+                )}
+            </Modal>
+        </div>
+    );
+};
+
+// ── Question Management ──────────────────────────────────────────────────────
+const SUBJECTS = ['Mathematics','English','Biology','Chemistry','Physics','Geography'];
+
+const QuestionManagement = () => {
+    const [questions, setQuestions] = useState([]);
+    const [filter, setFilter] = useState({subject:'',difficulty:'',student_level:''});
+    const [showModal, setShowModal] = useState(false);
+    const [form, setForm] = useState({question_number:'',question_text:'',option_a:'',option_b:'',option_c:'',option_d:'',correct_answer:'A',subject:'Mathematics',difficulty:'Easy',student_level:'Secondary School',points:10});
+    const [loading, setLoading] = useState(false);
+
+    const load = () => {
+        const params = new URLSearchParams();
+        if (filter.subject)       params.append('subject', filter.subject);
+        if (filter.difficulty)    params.append('difficulty', filter.difficulty);
+        if (filter.student_level) params.append('student_level', filter.student_level);
+        api.get('/admin/questions?' + params).then(setQuestions);
+    };
+
+    useEffect(() => { load(); }, [filter]);
+
+    const create = async (e) => {
+        e.preventDefault(); setLoading(true);
+        const data = await api.post('/admin/questions', form);
+        setLoading(false);
+        if (data.success) { setShowModal(false); load(); }
+        else alert('Error: ' + data.error);
+    };
+
+    const del = async (id) => {
+        if (!confirm('Delete this question?')) return;
+        await api.del(`/admin/questions/${id}`);
+        load();
+    };
+
+    return (
+        <div>
+            <div className="pg-header" style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:'1rem'}}>
+                <div><h1 style={{margin:0}}><i className="fas fa-question-circle" style={{marginRight:'.75rem'}}></i>Question Bank</h1><p style={{margin:'.25rem 0 0'}}>{questions.length} questions</p></div>
+                <button className="btn btn-gold" onClick={()=>setShowModal(true)}><i className="fas fa-plus"></i>Add Question</button>
+            </div>
+
+            {/* Filters */}
+            <div className="card">
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:'1rem'}}>
+                    <div><label className="form-label">Subject</label>
+                        <select className="form-input" value={filter.subject} onChange={e=>setFilter({...filter,subject:e.target.value})}>
+                            <option value="">All Subjects</option>{SUBJECTS.map(s=><option key={s}>{s}</option>)}
+                        </select>
+                    </div>
+                    <div><label className="form-label">Difficulty</label>
+                        <select className="form-input" value={filter.difficulty} onChange={e=>setFilter({...filter,difficulty:e.target.value})}>
+                            <option value="">All</option><option>Easy</option><option>Medium</option><option>Hard</option>
+                        </select>
+                    </div>
+                    <div><label className="form-label">Level</label>
+                        <select className="form-input" value={filter.student_level} onChange={e=>setFilter({...filter,student_level:e.target.value})}>
+                            <option value="">All Levels</option><option>Primary School</option><option>Secondary School</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div style={{display:'grid',gap:'1rem'}}>
+                {questions.map(q => (
+                    <div key={q.id} className="card" style={{display:'flex',gap:'1rem',alignItems:'flex-start'}}>
+                        <div style={{flex:1}}>
+                            <div style={{display:'flex',gap:'.5rem',flexWrap:'wrap',marginBottom:'.75rem'}}>
+                                <Badge type="dark">{q.subject}</Badge>
+                                <Badge type={q.difficulty==='Easy'?'green':q.difficulty==='Medium'?'yellow':'red'}>{q.difficulty}</Badge>
+                                <Badge type="blue">{q.student_level}</Badge>
+                                <Badge type="yellow">{q.points} pts</Badge>
+                            </div>
+                            <p style={{margin:'0 0 .75rem',fontWeight:600}}>{q.question_number}. {q.question_text}</p>
+                            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'.5rem',fontSize:'.85rem'}}>
+                                {['a','b','c','d'].map(o => (
+                                    <div key={o} style={{padding:'.4rem .75rem',background: q.correct_answer===o.toUpperCase()?'#d1fae5':'#f8fafc',borderRadius:'.5rem',border:`1px solid ${q.correct_answer===o.toUpperCase()?'#10b981':'#e2e8f0'}`}}>
+                                        <strong>{o.toUpperCase()})</strong> {q['option_'+o]}
+                                        {q.correct_answer===o.toUpperCase() && <i className="fas fa-check" style={{marginLeft:'.5rem',color:'#10b981'}}></i>}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        <button onClick={()=>del(q.id)} className="btn btn-danger"><i className="fas fa-trash"></i></button>
+                    </div>
+                ))}
+                {questions.length===0 && <div className="card" style={{textAlign:'center',color:'#64748b'}}>No questions found. Adjust filters or add new questions.</div>}
+            </div>
+
+            <Modal open={showModal} onClose={()=>setShowModal(false)} title="Add New Question">
+                <form onSubmit={create}>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1rem',marginBottom:'1rem'}}>
+                        <div><label className="form-label">Q #</label><input type="number" className="form-input" value={form.question_number} onChange={e=>setForm({...form,question_number:e.target.value})} required /></div>
+                        <div><label className="form-label">Points</label><input type="number" className="form-input" value={form.points} onChange={e=>setForm({...form,points:e.target.value})} required /></div>
+                    </div>
+                    <div style={{marginBottom:'1rem'}}>
+                        <label className="form-label">Question Text</label>
+                        <textarea className="form-input" rows="3" value={form.question_text} onChange={e=>setForm({...form,question_text:e.target.value})} required />
+                    </div>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1rem',marginBottom:'1rem'}}>
+                        {['a','b','c','d'].map(o=>(
+                            <div key={o}><label className="form-label">Option {o.toUpperCase()}</label><input type="text" className="form-input" value={form['option_'+o]} onChange={e=>setForm({...form,['option_'+o]:e.target.value})} required /></div>
+                        ))}
+                    </div>
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'1rem',marginBottom:'1.5rem'}}>
+                        <div><label className="form-label">Correct</label>
+                            <select className="form-input" value={form.correct_answer} onChange={e=>setForm({...form,correct_answer:e.target.value})}>
+                                <option>A</option><option>B</option><option>C</option><option>D</option>
+                            </select>
+                        </div>
+                        <div><label className="form-label">Subject</label>
+                            <select className="form-input" value={form.subject} onChange={e=>setForm({...form,subject:e.target.value})}>
+                                {SUBJECTS.map(s=><option key={s}>{s}</option>)}
+                            </select>
+                        </div>
+                        <div><label className="form-label">Difficulty</label>
+                            <select className="form-input" value={form.difficulty} onChange={e=>setForm({...form,difficulty:e.target.value})}>
+                                <option>Easy</option><option>Medium</option><option>Hard</option>
+                            </select>
+                        </div>
+                        <div><label className="form-label">Level</label>
+                            <select className="form-input" value={form.student_level} onChange={e=>setForm({...form,student_level:e.target.value})}>
+                                <option>Primary School</option><option>Secondary School</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" className="btn btn-primary" style={{width:'100%',justifyContent:'center'}} disabled={loading}>
+                        {loading?<><i className="fas fa-circle-notch fa-spin"></i>Adding…</>:<><i className="fas fa-check"></i>Add Question</>}
+                    </button>
+                </form>
+            </Modal>
+        </div>
+    );
+};
+
+// ── Competition Management ───────────────────────────────────────────────────
+const CompetitionManagement = () => {
+    const [comps, setComps] = useState([]);
+    const [students, setStudents] = useState([]);
+    const [showCreate, setShowCreate] = useState(false);
+    const [showAssign, setShowAssign] = useState(false);
+    const [showScoreboard, setShowScoreboard] = useState(false);
+    const [selectedComp, setSelectedComp] = useState(null);
+    const [selectedStudents, setSelectedStudents] = useState([]);
+    const [scoreboard, setScoreboard] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [form, setForm] = useState({title:'',description:'',subject:'Mathematics',difficulty:'Easy',student_level:'Secondary School',question_count:10,competition_type:'official',start_time:'',duration_minutes:60});
+
+    const load = () => api.get('/admin/competitions').then(setComps);
+    const loadStudents = () => api.get('/admin/students').then(setStudents);
+    useEffect(() => { load(); loadStudents(); }, []);
+
+    const create = async (e) => {
+        e.preventDefault(); setLoading(true);
+        const data = await api.post('/admin/competitions', form);
+        setLoading(false);
+        if (data.success) {
+            load(); setShowCreate(false);
+            setForm({title:'',description:'',subject:'Mathematics',difficulty:'Easy',student_level:'Secondary School',question_count:10,competition_type:'official',start_time:'',duration_minutes:60});
+            alert(`Competition created! ${data.questions_assigned} questions auto-assigned.`);
+        } else alert('Error: ' + data.error);
+    };
+
+    const openAssign = async (comp) => {
+        setSelectedComp(comp);
+        const participants = await api.get(`/admin/competitions/${comp.id}/participants`);
+        setSelectedStudents(participants.map(p=>p.id));
+        setShowAssign(true);
+    };
+
+    const assignParticipants = async () => {
+        const data = await api.post(`/admin/competitions/${selectedComp.id}/assign-participants`, { user_ids: selectedStudents });
+        if (data.success) { setShowAssign(false); load(); alert(`${data.assigned_count} student(s) assigned!`); }
+        else alert('Error: ' + data.error);
+    };
+
+    const toggleStudent = (id) => setSelectedStudents(prev => prev.includes(id) ? prev.filter(s=>s!==id) : [...prev,id]);
+
+    const startComp = async (id) => {
+        if (!confirm('Start this competition now?')) return;
+        await api.post(`/admin/competitions/${id}/start`, {});
+        load(); alert('Competition is now LIVE!');
+    };
+
+    const endComp = async (id) => {
+        if (!confirm('End this competition?')) return;
+        await api.post(`/admin/competitions/${id}/end`, {});
+        load();
+    };
+
+    const viewScoreboard = async (comp) => {
+        setSelectedComp(comp);
+        const data = await api.get(`/competition/${comp.id}/scoreboard`);
+        setScoreboard(data);
+        setShowScoreboard(true);
+    };
+
+    return (
+        <div>
+            <div className="pg-header" style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:'1rem'}}>
+                <div><h1 style={{margin:0}}><i className="fas fa-trophy" style={{marginRight:'.75rem'}}></i>Competitions</h1><p style={{margin:'.25rem 0 0'}}>{comps.length} competitions</p></div>
+                <button className="btn btn-gold" onClick={()=>setShowCreate(true)}><i className="fas fa-plus"></i>New Competition</button>
+            </div>
+
+            <div style={{display:'grid',gap:'1rem'}}>
+                {comps.map(c => (
+                    <div key={c.id} className="card">
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:'1rem'}}>
+                            <div>
+                                <div style={{display:'flex',alignItems:'center',gap:'.75rem',marginBottom:'.5rem'}}>
+                                    <h3 style={{margin:0,fontWeight:800}}>{c.title}</h3>
+                                    {statusBadge(c.status)}
+                                </div>
+                                <div style={{display:'flex',gap:'.75rem',flexWrap:'wrap',fontSize:'.85rem',color:'#64748b'}}>
+                                    <span><i className="fas fa-book" style={{marginRight:'.3rem'}}></i>{c.subject}</span>
+                                    <span><i className="fas fa-signal" style={{marginRight:'.3rem'}}></i>{c.difficulty}</span>
+                                    <span><i className="fas fa-users" style={{marginRight:'.3rem'}}></i>{c.participant_count} participants</span>
+                                    <span><i className="fas fa-question-circle" style={{marginRight:'.3rem'}}></i>{c.assigned_question_count} questions</span>
+                                    <span><i className="fas fa-clock" style={{marginRight:'.3rem'}}></i>{c.duration_minutes} min</span>
+                                </div>
+                            </div>
+                            <div style={{display:'flex',gap:'.5rem',flexWrap:'wrap'}}>
+                                <button onClick={()=>openAssign(c)} className="btn btn-secondary" style={{padding:'.5rem 1rem',fontSize:'.85rem'}}><i className="fas fa-users"></i>Assign</button>
+                                <button onClick={()=>viewScoreboard(c)} className="btn btn-secondary" style={{padding:'.5rem 1rem',fontSize:'.85rem'}}><i className="fas fa-list-ol"></i>Scores</button>
+                                {c.status==='upcoming' && <button onClick={()=>startComp(c.id)} className="btn btn-primary" style={{padding:'.5rem 1rem',fontSize:'.85rem'}}><i className="fas fa-play"></i>Start</button>}
+                                {c.status==='live'     && <button onClick={()=>endComp(c.id)}   className="btn btn-danger"                                                ><i className="fas fa-stop"></i>End</button>}
+                            </div>
+                        </div>
+                    </div>
+                ))}
+                {comps.length===0 && <div className="card" style={{textAlign:'center',color:'#64748b'}}>No competitions yet. Create your first one!</div>}
+            </div>
+
+            {/* Create Competition Modal */}
+            <Modal open={showCreate} onClose={()=>setShowCreate(false)} title="Create Competition">
+                <form onSubmit={create}>
+                    <div style={{marginBottom:'1rem'}}><label className="form-label">Title</label><input type="text" className="form-input" value={form.title} onChange={e=>setForm({...form,title:e.target.value})} required /></div>
+                    <div style={{marginBottom:'1rem'}}><label className="form-label">Description</label><textarea className="form-input" rows="2" value={form.description} onChange={e=>setForm({...form,description:e.target.value})} /></div>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1rem',marginBottom:'1rem'}}>
+                        <div><label className="form-label">Subject</label>
+                            <select className="form-input" value={form.subject} onChange={e=>setForm({...form,subject:e.target.value})}>
+                                {SUBJECTS.map(s=><option key={s}>{s}</option>)}
+                            </select>
+                        </div>
+                        <div><label className="form-label">Difficulty</label>
+                            <select className="form-input" value={form.difficulty} onChange={e=>setForm({...form,difficulty:e.target.value})}>
+                                <option>Easy</option><option>Medium</option><option>Hard</option>
+                            </select>
+                        </div>
+                        <div><label className="form-label">Student Level</label>
+                            <select className="form-input" value={form.student_level} onChange={e=>setForm({...form,student_level:e.target.value})}>
+                                <option>Primary School</option><option>Secondary School</option>
+                            </select>
+                        </div>
+                        <div><label className="form-label">Type</label>
+                            <select className="form-input" value={form.competition_type} onChange={e=>setForm({...form,competition_type:e.target.value})}>
+                                <option value="official">Official</option><option value="practice">Practice</option>
+                            </select>
+                        </div>
+                        <div><label className="form-label">No. of Questions</label><input type="number" className="form-input" value={form.question_count} onChange={e=>setForm({...form,question_count:e.target.value})} required min="1" /></div>
+                        <div><label className="form-label">Duration (minutes)</label><input type="number" className="form-input" value={form.duration_minutes} onChange={e=>setForm({...form,duration_minutes:e.target.value})} required min="5" /></div>
+                        <div style={{gridColumn:'1 / -1'}}><label className="form-label">Start Time (optional)</label><input type="datetime-local" className="form-input" value={form.start_time} onChange={e=>setForm({...form,start_time:e.target.value})} /></div>
+                    </div>
+                    <div style={{background:'#f0fdf4',border:'1px solid #bbf7d0',borderRadius:'.75rem',padding:'.75rem',marginBottom:'1.25rem',fontSize:'.85rem',color:'#166534'}}>
+                        <i className="fas fa-magic" style={{marginRight:'.5rem'}}></i>Questions auto-selected from bank: <strong>{form.subject} · {form.difficulty} · {form.student_level}</strong>
+                    </div>
+                    <button type="submit" className="btn btn-primary" style={{width:'100%',justifyContent:'center'}} disabled={loading}>
+                        {loading?<><i className="fas fa-circle-notch fa-spin"></i>Creating…</>:<><i className="fas fa-check"></i>Create Competition</>}
+                    </button>
+                </form>
+            </Modal>
+
+            {/* Assign Participants Modal */}
+            <Modal open={showAssign} onClose={()=>setShowAssign(false)} title={`Assign Participants – ${selectedComp?.title}`} wide>
+                <p style={{color:'#64748b',marginTop:0}}>Select students to add to this competition. Already-selected = currently enrolled.</p>
+                <div style={{maxHeight:'380px',overflowY:'auto',marginBottom:'1rem'}}>
+                    {students.map(s => (
+                        <div key={s.id} className={`check-row ${selectedStudents.includes(s.id)?'checked':''}`} onClick={()=>toggleStudent(s.id)}>
+                            <input type="checkbox" checked={selectedStudents.includes(s.id)} onChange={()=>{}} />
+                            <div style={{flex:1}}>
+                                <div style={{fontWeight:600}}>{s.full_name}</div>
+                                <div style={{fontSize:'.8rem',color:'#64748b'}}>{s.school} · <Badge type="blue">{s.student_level}</Badge></div>
+                            </div>
+                        </div>
+                    ))}
+                    {students.length===0 && <p style={{color:'#64748b',textAlign:'center'}}>No active students found.</p>}
+                </div>
+                <button onClick={assignParticipants} className="btn btn-primary" style={{width:'100%',justifyContent:'center'}}>
+                    <i className="fas fa-check"></i>Assign {selectedStudents.length} Student(s)
+                </button>
+            </Modal>
+
+            {/* Scoreboard Modal */}
+            <Modal open={showScoreboard} onClose={()=>setShowScoreboard(false)} title={`Scoreboard – ${selectedComp?.title}`} wide>
+                {scoreboard.length===0
+                    ? <p style={{color:'#64748b',textAlign:'center'}}>No scores yet. Competition may not have started or no answers submitted.</p>
+                    : <table className="data-table">
+                        <thead><tr><th>Rank</th><th>Student</th><th>School</th><th>Points</th><th>Correct</th></tr></thead>
+                        <tbody>
+                            {scoreboard.map((row, i) => (
+                                <tr key={row.user_id}>
+                                    <td style={{fontWeight:900,color:['#facc15','#94a3b8','#cd7f32'][i]||'var(--j900)'}}>{i+1}</td>
+                                    <td style={{fontWeight:600}}>{row.full_name}</td>
+                                    <td>{row.school}</td>
+                                    <td><Badge type="dark">{row.total_points} pts</Badge></td>
+                                    <td>{row.correct_answers}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                }
+            </Modal>
+        </div>
+    );
+};
+
+// ── Admin Analytics ──────────────────────────────────────────────────────────
+const AnalyticsDashboard = () => {
+    const [data, setData] = useState(null);
+    useEffect(() => { api.get('/analytics/dashboard').then(setData); }, []);
+    if (!data) return <Spinner />;
+
+    return (
+        <div>
+            <div className="pg-header"><h1><i className="fas fa-chart-pie" style={{marginRight:'.75rem'}}></i>Analytics & Reports</h1><p>System performance and insights</p></div>
+
+            {data.subject_performance.length > 0 && (
+                <div className="card">
+                    <h3 style={{marginTop:0,fontWeight:900,color:'var(--j900)'}}><i className="fas fa-chart-bar" style={{marginRight:'.5rem'}}></i>Subject Performance</h3>
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:'1rem'}}>
+                        {data.subject_performance.map(s => (
+                            <div key={s.subject} style={{background:'#f8fafc',padding:'1.25rem',borderRadius:'.75rem',borderLeft:`4px solid ${s.percentage>=70?'#10b981':s.percentage>=50?'#f59e0b':'#ef4444'}`}}>
+                                <div style={{fontWeight:700,marginBottom:'.5rem'}}>{s.subject}</div>
+                                <div style={{fontSize:'2rem',fontWeight:900,color:s.percentage>=70?'#10b981':s.percentage>=50?'#f59e0b':'#ef4444'}}>{s.percentage}%</div>
+                                <div className="progress-bar" style={{marginTop:'.5rem'}}>
+                                    <div className="progress-fill" style={{width:`${s.percentage}%`,background:s.percentage>=70?'#10b981':s.percentage>=50?'#f59e0b':'#ef4444'}}></div>
+                                </div>
+                                <div style={{fontSize:'.8rem',color:'#64748b',marginTop:'.5rem'}}>{s.correct}/{s.total} correct</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {data.competition_stats.length > 0 && (
+                <div className="card">
+                    <h3 style={{marginTop:0,fontWeight:900,color:'var(--j900)'}}><i className="fas fa-trophy" style={{marginRight:'.5rem'}}></i>Competition Stats</h3>
+                    {data.competition_stats.map((c,i) => (
+                        <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'1rem',background:'#f8fafc',borderRadius:'.75rem',marginBottom:'.5rem',border:'1px solid #e2e8f0'}}>
+                            <div>
+                                <div style={{fontWeight:700}}>{c.title}</div>
+                                <div style={{fontSize:'.8rem',color:'#64748b',marginTop:'.25rem'}}>
+                                    <i className="fas fa-users" style={{marginRight:'.25rem'}}></i>{c.participants} participants ·
+                                    <i className="fas fa-star" style={{margin:'0 .25rem'}}></i>Avg {c.avg_score} pts
+                                </div>
+                            </div>
+                            {statusBadge(c.status)}
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {data.recent_activity.length > 0 && (
+                <div className="card">
+                    <h3 style={{marginTop:0,fontWeight:900,color:'var(--j900)'}}><i className="fas fa-bolt" style={{marginRight:'.5rem'}}></i>Recent Activity</h3>
+                    {data.recent_activity.map((a,i) => (
+                        <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'.75rem 1rem',background:a.is_correct?'#d1fae5':'#fee2e2',border:`2px solid ${a.is_correct?'#10b981':'#ef4444'}`,borderRadius:'.75rem',marginBottom:'.5rem'}}>
+                            <div><span style={{fontWeight:600}}>{a.student}</span><span style={{color:'#64748b',fontSize:'.85rem'}}> in {a.competition}</span></div>
+                            <div style={{display:'flex',gap:'.5rem',alignItems:'center'}}>
+                                <Badge type={a.is_correct?'green':'red'}>{a.is_correct?'Correct':'Wrong'}</Badge>
+                                {a.points > 0 && <Badge type="yellow">{a.points} pts</Badge>}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {data.recent_activity.length===0 && data.subject_performance.length===0 && (
+                <div className="card" style={{textAlign:'center',color:'#64748b',padding:'3rem'}}>
+                    <i className="fas fa-chart-pie" style={{fontSize:'3rem',opacity:.3,display:'block',marginBottom:'1rem'}}></i>
+                    No activity data yet. Start a competition to see analytics here.
+                </div>
+            )}
+        </div>
+    );
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// STUDENT PAGES
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── Student Overview ─────────────────────────────────────────────────────────
+const StudentOverview = ({ user }) => {
+    const [comps, setComps]     = useState([]);
+    const [results, setResults] = useState([]);
+
+    useEffect(() => {
+        api.get(`/student/competitions?user_id=${user.id}`).then(setComps);
+        api.get(`/student/results?user_id=${user.id}`).then(setResults);
+    }, []);
+
+    const liveComps      = comps.filter(c=>c.status==='live');
+    const totalPoints    = results.reduce((s,r)=>s+r.total_points,0);
+    const totalCorrect   = results.reduce((s,r)=>s+r.correct_answers,0);
+
+    return (
+        <div>
+            <div className="pg-header"><h1><i className="fas fa-home" style={{marginRight:'.75rem'}}></i>Welcome, {user.full_name}!</h1><p>{user.school} · {user.student_level}</p></div>
+
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:'1.5rem',marginBottom:'2rem'}}>
+                {[
+                    {label:'My Competitions', value:comps.length,       icon:'fa-trophy',       color:'var(--j900)'},
+                    {label:'Live Now',        value:liveComps.length,   icon:'fa-bolt',         color:'#10b981'},
+                    {label:'Total Points',    value:totalPoints,        icon:'fa-star',         color:'#f59e0b'},
+                    {label:'Correct Answers', value:totalCorrect,       icon:'fa-check-circle', color:'var(--j700)'},
+                ].map(s=>(
+                    <div key={s.label} className="stat-card">
+                        <div style={{fontSize:'.72rem',fontWeight:700,color:'#64748b',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:'.5rem'}}>
+                            <i className={`fas ${s.icon}`} style={{marginRight:'.4rem',color:s.color}}></i>{s.label}
+                        </div>
+                        <div style={{fontSize:'2.5rem',fontWeight:900,color:s.color,letterSpacing:'-.05em'}}>{s.value}</div>
+                    </div>
+                ))}
+            </div>
+
+            {liveComps.length > 0 && (
+                <div className="card" style={{border:'2px solid #10b981',background:'#f0fdf4'}}>
+                    <h3 style={{marginTop:0,color:'#065f46',fontWeight:900}}><i className="fas fa-bolt" style={{marginRight:'.5rem',color:'#10b981'}}></i>Live Competitions – Join Now!</h3>
+                    {liveComps.map(c => (
+                        <div key={c.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'.75rem 1rem',background:'white',borderRadius:'.75rem',marginBottom:'.5rem',border:'1px solid #a7f3d0'}}>
+                            <div><div style={{fontWeight:700}}>{c.title}</div><div style={{fontSize:'.8rem',color:'#64748b'}}>{c.subject} · {c.duration_minutes} min</div></div>
+                            <Badge type="green"><i className="fas fa-circle" style={{fontSize:'.4rem'}}></i>LIVE</Badge>
+                        </div>
+                    ))}
+                    <p style={{margin:'.75rem 0 0',fontSize:'.85rem',color:'#047857'}}>→ Click "My Competitions" in the menu to join.</p>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// ── Student Competitions ─────────────────────────────────────────────────────
+const StudentCompetitions = ({ user }) => {
+    const [comps, setComps]         = useState([]);
+    const [activeComp, setActiveComp] = useState(null);   // currently taking
+    const [loading, setLoading]     = useState(false);
+
+    useEffect(() => {
+        api.get(`/student/competitions?user_id=${user.id}`).then(setComps);
+    }, []);
+
+    if (activeComp) {
+        return <QuizRunner comp={activeComp} user={user} onFinish={(score)=>{ setActiveComp(null); api.get(`/student/competitions?user_id=${user.id}`).then(setComps); }} />;
+    }
+
+    return (
+        <div>
+            <div className="pg-header"><h1><i className="fas fa-trophy" style={{marginRight:'.75rem'}}></i>My Competitions</h1><p>Competitions you are enrolled in</p></div>
+
+            {comps.length===0 && (
+                <div className="card" style={{textAlign:'center',color:'#64748b',padding:'3rem'}}>
+                    <i className="fas fa-trophy" style={{fontSize:'3rem',opacity:.2,display:'block',marginBottom:'1rem'}}></i>
+                    No competitions assigned yet. Ask your admin to enroll you.
+                </div>
+            )}
+
+            <div style={{display:'grid',gap:'1rem'}}>
+                {comps.map(c => (
+                    <div key={c.id} className="card">
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:'1rem'}}>
+                            <div>
+                                <div style={{display:'flex',alignItems:'center',gap:'.75rem',marginBottom:'.5rem'}}>
+                                    <h3 style={{margin:0,fontWeight:800}}>{c.title}</h3>
+                                    {statusBadge(c.status)}
+                                </div>
+                                <div style={{fontSize:'.85rem',color:'#64748b',display:'flex',gap:'1rem',flexWrap:'wrap'}}>
+                                    <span><i className="fas fa-book" style={{marginRight:'.3rem'}}></i>{c.subject}</span>
+                                    <span><i className="fas fa-signal" style={{marginRight:'.3rem'}}></i>{c.difficulty}</span>
+                                    <span><i className="fas fa-clock" style={{marginRight:'.3rem'}}></i>{c.duration_minutes} min</span>
+                                    <span><i className="fas fa-question-circle" style={{marginRight:'.3rem'}}></i>{c.question_count} questions</span>
+                                </div>
+                                {c.my_score > 0 && (
+                                    <div style={{marginTop:'.5rem',fontSize:'.85rem'}}><i className="fas fa-star" style={{color:'#f59e0b',marginRight:'.3rem'}}></i>Your score: <strong>{c.my_score} pts</strong> ({c.my_correct} correct)</div>
+                                )}
+                            </div>
+                            {c.status==='live' && (
+                                <button onClick={()=>setActiveComp(c)} className="btn btn-primary">
+                                    <i className="fas fa-play"></i>Start Quiz
+                                </button>
+                            )}
+                            {c.status==='upcoming' && <span style={{color:'#64748b',fontSize:'.85rem'}}><i className="fas fa-clock" style={{marginRight:'.4rem'}}></i>Not started yet</span>}
+                            {c.status==='completed' && <span style={{color:'#10b981',fontSize:'.85rem',fontWeight:600}}><i className="fas fa-check-circle" style={{marginRight:'.4rem'}}></i>Completed</span>}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+// ── Quiz Runner ──────────────────────────────────────────────────────────────
+const QuizRunner = ({ comp, user, onFinish }) => {
+    const [questions, setQuestions]     = useState([]);
+    const [answers, setAnswers]         = useState({});
+    const [current, setCurrent]         = useState(0);
+    const [submitted, setSubmitted]     = useState(false);
+    const [result, setResult]           = useState(null);
+    const [timeLeft, setTimeLeft]       = useState(comp.duration_minutes * 60);
+    const [loading, setLoading]         = useState(true);
+    const [submitting, setSubmitting]   = useState(false);
+    const timerRef = useRef(null);
+
+    useEffect(() => {
+        api.get(`/competition/${comp.id}/questions`).then(d => {
+            if (d.questions) { setQuestions(d.questions); setLoading(false); }
+            else { alert('Could not load questions.'); onFinish(0); }
+        });
+    }, []);
+
+    // Countdown timer
+    useEffect(() => {
+        if (loading || submitted) return;
+        timerRef.current = setInterval(() => {
+            setTimeLeft(t => {
+                if (t <= 1) { clearInterval(timerRef.current); submitAll(); return 0; }
+                return t - 1;
+            });
+        }, 1000);
+        return () => clearInterval(timerRef.current);
+    }, [loading, submitted]);
+
+    const submitAll = useCallback(async () => {
+        if (submitted) return;
+        setSubmitting(true); setSubmitted(true);
+        clearInterval(timerRef.current);
+        const data = await api.post(`/competition/${comp.id}/submit`, { user_id: user.id, answers });
+        setResult(data);
+        setSubmitting(false);
+    }, [answers, submitted]);
+
+    const mins = Math.floor(timeLeft/60).toString().padStart(2,'0');
+    const secs = (timeLeft%60).toString().padStart(2,'0');
+    const isWarning = timeLeft < 60;
+
+    if (loading) return <Spinner />;
+
+    if (result) {
+        const pct = questions.length > 0 ? Math.round((result.correct_count/questions.length)*100) : 0;
+        return (
+            <div>
+                <div className="pg-header"><h1><i className="fas fa-check-circle" style={{marginRight:'.75rem'}}></i>Quiz Complete!</h1><p>{comp.title}</p></div>
+                <div className="card" style={{textAlign:'center',padding:'3rem'}}>
+                    <div style={{fontSize:'4rem',fontWeight:900,color:pct>=70?'#10b981':pct>=50?'#f59e0b':'#ef4444',letterSpacing:'-.04em'}}>{pct}%</div>
+                    <div style={{fontSize:'1.2rem',color:'#64748b',margin:'1rem 0'}}>{result.correct_count} correct out of {questions.length} questions</div>
+                    <div style={{fontSize:'2rem',fontWeight:800,color:'var(--j900)'}}>{result.score} Points</div>
+                    <button onClick={()=>onFinish(result.score)} className="btn btn-primary" style={{marginTop:'2rem',padding:'1rem 2rem'}}>
+                        <i className="fas fa-arrow-left"></i>Back to Competitions
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    const q = questions[current];
+    const progress = ((current+1)/questions.length)*100;
+
+    return (
+        <div>
+            <div className="pg-header">
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:'1rem'}}>
+                    <div><h1 style={{margin:0}}>{comp.title}</h1><p style={{margin:'.25rem 0 0'}}>Question {current+1} of {questions.length}</p></div>
+                    <div className={`timer ${isWarning?'warning':''}`}><i className="fas fa-clock" style={{marginRight:'.5rem'}}></i>{mins}:{secs}</div>
+                </div>
+                <div className="progress-bar" style={{marginTop:'1rem'}}>
+                    <div className="progress-fill" style={{width:`${progress}%`,background:'var(--gold)'}}></div>
+                </div>
+            </div>
+
+            <div className="card">
+                <div style={{fontSize:'.85rem',color:'#64748b',marginBottom:'1rem',display:'flex',gap:'.75rem',flexWrap:'wrap'}}>
+                    <Badge type="dark">{q.subject}</Badge>
+                    <Badge type="yellow">{q.points} pts</Badge>
+                </div>
+                <h2 style={{fontSize:'1.2rem',fontWeight:700,marginBottom:'1.5rem'}}>{q.question_text}</h2>
+
+                {Object.entries(q.options).map(([letter, text]) => (
+                    <div key={letter}
+                         className={`quiz-opt ${answers[q.id]===letter?'sel':''}`}
+                         onClick={()=>setAnswers({...answers,[q.id]:letter})}>
+                        <span style={{width:28,height:28,borderRadius:'50%',background:answers[q.id]===letter?'rgba(255,255,255,.3)':'#e2e8f0',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:'.85rem',flexShrink:0}}>{letter}</span>
+                        {text}
+                    </div>
+                ))}
+            </div>
+
+            <div style={{display:'flex',justifyContent:'space-between',gap:'1rem',flexWrap:'wrap'}}>
+                <button onClick={()=>setCurrent(c=>Math.max(0,c-1))} className="btn btn-secondary" disabled={current===0}><i className="fas fa-arrow-left"></i>Previous</button>
+                <div style={{display:'flex',gap:'.5rem',flexWrap:'wrap',justifyContent:'center'}}>
+                    {questions.map((_,i)=>(
+                        <button key={i} onClick={()=>setCurrent(i)}
+                            style={{width:36,height:36,borderRadius:'50%',border:`2px solid ${i===current?'var(--j900)':'#e2e8f0'}`,background:answers[questions[i].id]?'var(--j900)':i===current?'var(--j800)':'white',color:answers[questions[i].id]||i===current?'white':'#64748b',fontWeight:700,cursor:'pointer',fontSize:'.8rem'}}>
+                            {i+1}
+                        </button>
+                    ))}
+                </div>
+                {current < questions.length-1
+                    ? <button onClick={()=>setCurrent(c=>c+1)} className="btn btn-primary" disabled={!answers[q.id]}><i className="fas fa-arrow-right"></i>Next</button>
+                    : <button onClick={submitAll} className="btn btn-gold" disabled={submitting}>
+                        {submitting?<><i className="fas fa-circle-notch fa-spin"></i>Submitting…</>:<><i className="fas fa-paper-plane"></i>Submit Quiz</>}
+                    </button>
+                }
+            </div>
+        </div>
+    );
+};
+
+// ── Practice Quiz ────────────────────────────────────────────────────────────
+const PracticeQuiz = ({ user }) => {
+    const [subject, setSubject]         = useState('');
+    const [limit, setLimit]             = useState(10);
+    const [questions, setQuestions]     = useState([]);
+    const [answers, setAnswers]         = useState({});
+    const [result, setResult]           = useState(null);
+    const [current, setCurrent]         = useState(0);
+    const [started, setStarted]         = useState(false);
+    const [submitting, setSubmitting]   = useState(false);
+
+    const start = () => {
+        const params = new URLSearchParams({ limit });
+        if (subject) params.append('subject', subject);
+        if (user.student_level) params.append('student_level', user.student_level);
+        api.get('/practice/questions?' + params).then(qs => {
+            if (qs.length===0) { alert('No questions found for selected filters.'); return; }
+            setQuestions(qs); setAnswers({}); setResult(null); setCurrent(0); setStarted(true);
+        });
+    };
+
+    const submit = async () => {
+        setSubmitting(true);
+        const data = await api.post('/practice/submit', { answers });
+        setResult(data);
+        setSubmitting(false);
+    };
+
+    const reset = () => { setStarted(false); setResult(null); setQuestions([]); setAnswers({}); };
+
+    if (!started) {
+        return (
+            <div>
+                <div className="pg-header"><h1><i className="fas fa-pen" style={{marginRight:'.75rem'}}></i>Practice Quiz</h1><p>Test yourself at your own pace – no timer, instant feedback!</p></div>
+                <div className="card" style={{maxWidth:480}}>
+                    <div style={{marginBottom:'1rem'}}>
+                        <label className="form-label">Subject (optional)</label>
+                        <select className="form-input" value={subject} onChange={e=>setSubject(e.target.value)}>
+                            <option value="">All Subjects</option>
+                            {SUBJECTS.map(s=><option key={s}>{s}</option>)}
+                        </select>
+                    </div>
+                    <div style={{marginBottom:'1.5rem'}}>
+                        <label className="form-label">Number of Questions</label>
+                        <select className="form-input" value={limit} onChange={e=>setLimit(e.target.value)}>
+                            <option value={5}>5</option><option value={10}>10</option><option value={15}>15</option><option value={20}>20</option>
+                        </select>
+                    </div>
+                    <button onClick={start} className="btn btn-primary" style={{width:'100%',justifyContent:'center'}}>
+                        <i className="fas fa-play"></i>Start Practice
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    if (result) {
+        return (
+            <div>
+                <div className="pg-header"><h1><i className="fas fa-check-circle" style={{marginRight:'.75rem'}}></i>Practice Results</h1></div>
+                <div className="card" style={{textAlign:'center',padding:'2rem',marginBottom:'1.5rem'}}>
+                    <div style={{fontSize:'4rem',fontWeight:900,color:result.percentage>=70?'#10b981':result.percentage>=50?'#f59e0b':'#ef4444'}}>{result.percentage}%</div>
+                    <div style={{color:'#64748b',marginTop:'.5rem'}}>{result.score} / {result.total} points</div>
+                    <button onClick={reset} className="btn btn-primary" style={{marginTop:'1.5rem'}}><i className="fas fa-redo"></i>Try Again</button>
+                </div>
+
+                {/* Show detailed results */}
+                {result.details && result.details.map((d,i)=>(
+                    <div key={i} className="card" style={{borderLeft:`4px solid ${d.is_correct?'#10b981':'#ef4444'}`}}>
+                        <div style={{display:'flex',justifyContent:'space-between',marginBottom:'.75rem'}}>
+                            <span style={{fontWeight:600,flex:1}}>{i+1}. {d.question_text}</span>
+                            <Badge type={d.is_correct?'green':'red'}>{d.is_correct?'Correct':'Wrong'}</Badge>
+                        </div>
+                        <div style={{fontSize:'.85rem',color:'#64748b'}}>
+                            Your answer: <strong style={{color:d.is_correct?'#10b981':'#ef4444'}}>{d.your_answer}</strong>
+                            {!d.is_correct && <> · Correct: <strong style={{color:'#10b981'}}>{d.correct_answer}</strong></>}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
+    }
+
+    const q = questions[current];
+
+    return (
+        <div>
+            <div className="pg-header">
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <div><h1 style={{margin:0}}><i className="fas fa-pen" style={{marginRight:'.75rem'}}></i>Practice Quiz</h1><p style={{margin:'.25rem 0 0'}}>Question {current+1} of {questions.length}</p></div>
+                    <button onClick={reset} className="btn btn-secondary" style={{fontSize:'.8rem',padding:'.5rem 1rem'}}><i className="fas fa-times"></i>Quit</button>
+                </div>
+                <div className="progress-bar" style={{marginTop:'1rem'}}>
+                    <div className="progress-fill" style={{width:`${((current+1)/questions.length)*100}%`,background:'var(--gold)'}}></div>
+                </div>
+            </div>
+
+            <div className="card">
+                <div style={{marginBottom:'1rem'}}><Badge type="dark">{q.subject}</Badge> <Badge type="yellow">{q.points} pts</Badge></div>
+                <h2 style={{fontWeight:700,marginBottom:'1.5rem'}}>{q.question_text}</h2>
+                {Object.entries(q.options).map(([l,t]) => (
+                    <div key={l} className={`quiz-opt ${answers[q.id]===l?'sel':''}`} onClick={()=>setAnswers({...answers,[q.id]:l})}>
+                        <span style={{width:28,height:28,borderRadius:'50%',background:answers[q.id]===l?'rgba(255,255,255,.3)':'#e2e8f0',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:'.85rem',flexShrink:0}}>{l}</span>{t}
+                    </div>
+                ))}
+            </div>
+
+            <div style={{display:'flex',justifyContent:'space-between',flexWrap:'wrap',gap:'1rem'}}>
+                <button onClick={()=>setCurrent(c=>Math.max(0,c-1))} className="btn btn-secondary" disabled={current===0}><i className="fas fa-arrow-left"></i>Previous</button>
+                {current < questions.length-1
+                    ? <button onClick={()=>setCurrent(c=>c+1)} className="btn btn-primary"><i className="fas fa-arrow-right"></i>Next</button>
+                    : <button onClick={submit} className="btn btn-gold" disabled={submitting}>
+                        {submitting?<><i className="fas fa-circle-notch fa-spin"></i>Submitting…</>:<><i className="fas fa-paper-plane"></i>Submit</>}
+                    </button>
+                }
+            </div>
+        </div>
+    );
+};
+
+// ── Student Results ──────────────────────────────────────────────────────────
+const StudentResults = ({ user }) => {
+    const [results, setResults] = useState(null);
+
+    useEffect(() => { api.get(`/student/results?user_id=${user.id}`).then(setResults); }, []);
+
+    if (!results) return <Spinner />;
+
+    return (
+        <div>
+            <div className="pg-header"><h1><i className="fas fa-chart-bar" style={{marginRight:'.75rem'}}></i>My Results</h1><p>Your competition history</p></div>
+
+            {results.length===0
+                ? <div className="card" style={{textAlign:'center',color:'#64748b',padding:'3rem'}}>No results yet. Join a live competition to get started!</div>
+                : results.map((r,i) => (
+                    <div key={i} className="card" style={{borderLeft:`4px solid var(--j900)`}}>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:'1rem'}}>
+                            <div>
+                                <h3 style={{margin:'0 0 .5rem',fontWeight:800}}>{r.title}</h3>
+                                <div style={{fontSize:'.85rem',color:'#64748b',display:'flex',gap:'1rem',flexWrap:'wrap'}}>
+                                    <span><i className="fas fa-book" style={{marginRight:'.3rem'}}></i>{r.subject}</span>
+                                    <span><i className="fas fa-signal" style={{marginRight:'.3rem'}}></i>{r.difficulty}</span>
+                                    <span><i className="fas fa-check" style={{marginRight:'.3rem'}}></i>{r.correct_answers}/{r.total_questions} correct</span>
+                                    <span><i className="fas fa-calendar" style={{marginRight:'.3rem'}}></i>{new Date(r.updated_at).toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                            <div style={{textAlign:'right'}}>
+                                <div style={{fontSize:'2rem',fontWeight:900,color:'var(--j900)'}}>{r.total_points}</div>
+                                <div style={{fontSize:'.8rem',color:'#64748b'}}>points</div>
+                            </div>
+                        </div>
+                        {r.total_questions > 0 && (
+                            <div style={{marginTop:'1rem'}}>
+                                <div className="progress-bar">
+                                    <div className="progress-fill" style={{width:`${Math.round((r.correct_answers/r.total_questions)*100)}%`,background:'var(--j900)'}}></div>
+                                </div>
+                                <div style={{fontSize:'.8rem',color:'#64748b',marginTop:'.25rem'}}>{Math.round((r.correct_answers/r.total_questions)*100)}% accuracy</div>
+                            </div>
+                        )}
+                    </div>
+                ))
+            }
+        </div>
+    );
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// LANDING PAGE
+// ══════════════════════════════════════════════════════════════════════════════
+const LandingPage = ({ onEnter }) => {
+    const [scrolled, setScrolled] = useState(false);
+
+    useEffect(() => {
+        const onScroll = () => setScrolled(window.scrollY > 40);
+        window.addEventListener('scroll', onScroll);
+
+        // Intersection observer for reveal animations
+        const io = new IntersectionObserver((entries) => {
+            entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+        }, { threshold: 0.12 });
+        document.querySelectorAll('.lp-reveal').forEach(el => io.observe(el));
+
+        return () => { window.removeEventListener('scroll', onScroll); io.disconnect(); };
+    }, []);
+
+    const features = [
+        { icon:'fa-bolt',          title:'Live Competitions',    desc:'Join real-time quiz battles against classmates across Jigawa State schools. Every second counts.' },
+        { icon:'fa-brain',         title:'Smart Question Bank',  desc:'Thousands of curriculum-aligned questions across Biology, Maths, Physics, Chemistry, English and Geography.' },
+        { icon:'fa-chart-line',    title:'Instant Analytics',    desc:'Detailed performance breakdowns, subject-wise accuracy, and ranked leaderboards updated in real time.' },
+        { icon:'fa-shield-alt',    title:'Admin Control',        desc:'Full competition lifecycle management — create, assign students, start, end and analyse results.' },
+        { icon:'fa-graduation-cap','title':'Multi-Level Support', desc:'Tailored question sets for both Primary and Secondary School students for age-appropriate challenges.' },
+        { icon:'fa-pen-nib',       title:'Practice Mode',        desc:'No pressure, no timer — practice any subject at your own pace and review every right and wrong answer.' },
+    ];
+
+    const steps = [
+        { icon:'fa-user-plus',   title:'Register',         desc:'Admin creates your account in seconds and assigns you to the right competitions.' },
+        { icon:'fa-sign-in-alt', title:'Login',            desc:'Sign in with your credentials and land straight on your personal dashboard.' },
+        { icon:'fa-play-circle', title:'Join & Compete',   desc:'When a competition goes live, jump in, answer questions before the timer runs out.' },
+        { icon:'fa-trophy',      title:'See Your Results', desc:'View your score, ranking, and detailed answer review the moment you submit.' },
+    ];
+
+    const testimonials = [
+        { quote:'"QuizMaster completely changed how we run inter-school competitions. What used to take days of paperwork now happens in minutes."', stars:5, name:'Mr. Kabiru Musa', role:'Head Teacher, GSS Dutse', color:'#064e3b', letter:'K' },
+        { quote:'"I love the practice mode! I can test myself on Biology before the real competition without any pressure. My scores have improved so much."', stars:5, name:'Amina Yusuf', role:'SS2 Student, Kazaure', color:'#1e40af', letter:'A' },
+        { quote:'"The analytics dashboard helps me identify which subjects my students struggle with most. It\'s genuinely useful data."', stars:5, name:'Mrs. Hafsat Ibrahim', role:'Science Teacher, Hadejia', color:'#7c2d12', letter:'H' },
+    ];
+
+    const subjects = ['Mathematics','Biology','Chemistry','Physics','English Language','Geography','Mathematics','Biology','Chemistry','Physics','English Language','Geography'];
+
+    return (
+        <div className="lp">
+
+            {/* ── NAV ── */}
+            <nav className={`lp-nav ${scrolled?'scrolled':''}`}>
+                <div className="lp-nav-logo">
+                    <div className="lp-nav-logo-icon"><i className="fas fa-trophy"></i></div>
+                    <span>QuizMaster <span style={{color:'var(--gold)'}}>Elite</span></span>
+                </div>
+                <div className="lp-nav-links">
+                    <a href="#features">Features</a>
+                    <a href="#how">How it Works</a>
+                    <a href="#subjects">Subjects</a>
+                    <a href="#testimonials">Reviews</a>
+                </div>
+                <button className="lp-nav-cta" onClick={onEnter}>
+                    <i className="fas fa-sign-in-alt" style={{marginRight:'.4rem'}}></i>Sign In
+                </button>
+            </nav>
+
+            {/* ── HERO ── */}
+            <section className="lp-hero">
+                <div className="lp-hero-grid"></div>
+                <div className="lp-hero-glow lp-hero-glow-1"></div>
+                <div className="lp-hero-glow lp-hero-glow-2"></div>
+                <div className="lp-hero-glow lp-hero-glow-3"></div>
+
+                <div className="lp-hero-content">
+                    <div className="lp-hero-eyebrow">
+                        <div className="lp-hero-eyebrow-dot"></div>
+                        Jigawa State · School Quiz Platform
+                    </div>
+                    <h1 className="lp-hero-h1">
+                        Compete.<br/>
+                        <em>Learn.</em><br/>
+                        Dominate.
+                    </h1>
+                    <p className="lp-hero-sub">
+                        The premier online quiz platform powering inter-school competitions
+                        across Jigawa State. Real-time battles, smart analytics, and
+                        curriculum-aligned questions for every level.
+                    </p>
+                    <div className="lp-hero-actions">
+                        <button className="lp-btn-hero-primary" onClick={onEnter}>
+                            <i className="fas fa-rocket"></i>
+                            Start Competing
+                        </button>
+                        <button className="lp-btn-hero-secondary" onClick={()=>document.getElementById('features').scrollIntoView({behavior:'smooth'})}>
+                            <i className="fas fa-play"></i>
+                            See Features
+                        </button>
+                    </div>
+                    <div className="lp-hero-stats">
+                        {[['6+','Schools'],['24+','Questions'],['6','Subjects'],['100%','Free']].map(([n,l])=>(
+                            <div key={l} className="lp-stat-item">
+                                <div className="lp-stat-num">{n}</div>
+                                <div className="lp-stat-lbl">{l}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Floating quiz card */}
+                <div className="lp-hero-visual">
+                    <div style={{position:'relative',height:'380px',width:'100%'}}>
+                        {/* Main card */}
+                        <div className="lp-float-card lp-float-card-main">
+                            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1.25rem'}}>
+                                <span style={{fontSize:'.72rem',fontWeight:700,color:'var(--gold)',letterSpacing:'.08em',textTransform:'uppercase',background:'rgba(250,204,21,.1)',padding:'.25rem .75rem',borderRadius:'9999px',border:'1px solid rgba(250,204,21,.2)'}}>
+                                    <i className="fas fa-bolt" style={{marginRight:'.3rem'}}></i>Live · Q4 of 10
+                                </span>
+                                <span style={{fontSize:'.82rem',color:'#ef4444',fontWeight:700}}><i className="fas fa-clock" style={{marginRight:'.3rem'}}></i>00:42</span>
+                            </div>
+                            <p style={{fontWeight:700,fontSize:'.95rem',marginBottom:'1rem',lineHeight:1.5}}>What is the powerhouse of the cell?</p>
+                            {[['A','Nucleus',''],['B','Mitochondria','sel'],['C','Ribosome',''],['D','Chloroplast','']].map(([l,t,cls])=>(
+                                <div key={l} style={{
+                                    display:'flex',alignItems:'center',gap:'.6rem',padding:'.55rem .9rem',
+                                    borderRadius:'.65rem',marginBottom:'.4rem',fontSize:'.82rem',fontWeight:600,
+                                    background: cls?'rgba(250,204,21,.15)':'rgba(255,255,255,.04)',
+                                    border:`1px solid ${cls?'rgba(250,204,21,.4)':'rgba(255,255,255,.08)'}`,
+                                    color: cls?'var(--gold)':'rgba(255,255,255,.7)',
+                                }}>
+                                    <span style={{width:22,height:22,borderRadius:5,background:cls?'rgba(250,204,21,.2)':'rgba(255,255,255,.05)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'.72rem',fontWeight:800,flexShrink:0}}>{l}</span>
+                                    {t}
+                                    {cls && <i className="fas fa-check" style={{marginLeft:'auto',fontSize:'.75rem'}}></i>}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Score card */}
+                        <div className="lp-float-card lp-float-card-2" style={{top:20,right:-40}}>
+                            <div style={{fontSize:'.7rem',color:'rgba(255,255,255,.4)',marginBottom:'.35rem',fontWeight:600,letterSpacing:'.06em',textTransform:'uppercase'}}>Your Score</div>
+                            <div style={{fontFamily:'Syne,sans-serif',fontSize:'2.2rem',fontWeight:800,color:'var(--gold)',lineHeight:1}}>850</div>
+                            <div style={{fontSize:'.72rem',color:'rgba(255,255,255,.4)',marginTop:'.25rem'}}>
+                                <i className="fas fa-arrow-up" style={{color:'#10b981',marginRight:'.25rem'}}></i>Rank #2
+                            </div>
+                        </div>
+
+                        {/* Live users card */}
+                        <div className="lp-float-card lp-float-card-3" style={{bottom:20,left:-20}}>
+                            <div style={{fontSize:'.7rem',color:'rgba(255,255,255,.4)',marginBottom:'.5rem',fontWeight:600,letterSpacing:'.06em',textTransform:'uppercase'}}>Competing Now</div>
+                            <div style={{display:'flex',gap:'-8px'}}>
+                                {['K','A','M','F'].map((l,i)=>(
+                                    <div key={i} style={{width:28,height:28,borderRadius:'50%',border:'2px solid rgba(5,12,10,1)',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:'.72rem',marginLeft:i?'-8px':0,background:['#064e3b','#1e40af','#7c2d12','#065f46'][i],zIndex:4-i}}>{l}</div>
+                                ))}
+                                <div style={{width:28,height:28,borderRadius:'50%',border:'2px solid rgba(5,12,10,1)',background:'rgba(255,255,255,.08)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'.65rem',color:'rgba(255,255,255,.5)',marginLeft:'-8px',zIndex:0}}>+3</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* ── TICKER ── */}
+            <div id="subjects" className="lp-ticker-wrap">
+                <div className="lp-ticker-track">
+                    {[...subjects,...subjects].map((s,i) => (
+                        <div key={i} className="lp-ticker-item">
+                            <span>✦</span> {s}
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* ── FEATURES ── */}
+            <section id="features" className="lp-section">
+                <div style={{textAlign:'center',marginBottom:0}}>
+                    <div className="lp-section-label lp-reveal" style={{justifyContent:'center'}}>Everything You Need</div>
+                    <h2 className="lp-section-h2 lp-reveal lp-reveal-delay-1" style={{textAlign:'center',margin:'0 auto 1rem'}}>
+                        Built for serious<br/>academic competition
+                    </h2>
+                    <p className="lp-section-sub lp-reveal lp-reveal-delay-2" style={{margin:'0 auto',textAlign:'center'}}>
+                        Every feature designed around how teachers run and students experience school quiz competitions.
+                    </p>
+                </div>
+                <div className="lp-features-grid">
+                    {features.map((f,i) => (
+                        <div key={i} className={`lp-feat lp-reveal lp-reveal-delay-${(i%4)+1}`}>
+                            <div className="lp-feat-icon"><i className={`fas ${f.icon}`}></i></div>
+                            <h3>{f.title}</h3>
+                            <p>{f.desc}</p>
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            {/* ── HOW IT WORKS ── */}
+            <section id="how" className="lp-section lp-how">
+                <div style={{textAlign:'center'}}>
+                    <div className="lp-section-label lp-reveal" style={{justifyContent:'center'}}>Simple Process</div>
+                    <h2 className="lp-section-h2 lp-reveal lp-reveal-delay-1" style={{textAlign:'center',margin:'0 auto 1rem'}}>
+                        From login to<br/>leaderboard in minutes
+                    </h2>
+                </div>
+                <div className="lp-steps">
+                    {steps.map((s,i) => (
+                        <div key={i} className={`lp-step lp-reveal lp-reveal-delay-${i+1}`}>
+                            <div className="lp-step-num">0{i+1}</div>
+                            <div className="lp-step-icon"><i className={`fas ${s.icon}`}></i></div>
+                            <h3>{s.title}</h3>
+                            <p>{s.desc}</p>
+                            {i < steps.length-1 && <div className="lp-step-connector"></div>}
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            {/* ── TESTIMONIALS ── */}
+            <section id="testimonials" className="lp-section">
+                <div style={{textAlign:'center'}}>
+                    <div className="lp-section-label lp-reveal" style={{justifyContent:'center'}}>Voices from Jigawa</div>
+                    <h2 className="lp-section-h2 lp-reveal lp-reveal-delay-1" style={{textAlign:'center',margin:'0 auto'}}>
+                        Trusted by teachers<br/>and students alike
+                    </h2>
+                </div>
+                <div className="lp-testimonials">
+                    {testimonials.map((t,i) => (
+                        <div key={i} className={`lp-testi lp-reveal lp-reveal-delay-${i+1}`}>
+                            <div className="lp-testi-stars">{'★'.repeat(t.stars)}</div>
+                            <p className="lp-testi-quote">{t.quote}</p>
+                            <div className="lp-testi-author">
+                                <div className="lp-testi-avatar" style={{background:t.color}}>{t.letter}</div>
+                                <div>
+                                    <div className="lp-testi-name">{t.name}</div>
+                                    <div className="lp-testi-role">{t.role}</div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            {/* ── CTA BANNER ── */}
+            <div className="lp-cta-section lp-reveal">
+                <div className="lp-cta-inner">
+                    <div className="lp-hero-eyebrow" style={{justifyContent:'center',display:'inline-flex',margin:'0 auto 1.5rem'}}>
+                        <div className="lp-hero-eyebrow-dot"></div>
+                        Ready to Begin?
+                    </div>
+                    <h2 className="lp-cta-h2">
+                        Your next trophy is<br/>one quiz away
+                    </h2>
+                    <p className="lp-cta-sub">
+                        Join hundreds of Jigawa State students already competing, learning, and climbing the leaderboard.
+                    </p>
+                    <div className="lp-cta-actions">
+                        <button className="lp-btn-hero-primary" onClick={onEnter}>
+                            <i className="fas fa-rocket"></i>
+                            Start Now — It's Free
+                        </button>
+                        <button className="lp-btn-hero-secondary" onClick={onEnter} style={{borderColor:'rgba(255,255,255,.2)'}}>
+                            <i className="fas fa-user-shield"></i>
+                            Admin Login
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* ── FOOTER ── */}
+            <footer className="lp-footer">
+                <div className="lp-footer-top">
+                    <div>
+                        <div className="lp-nav-logo" style={{marginBottom:'.75rem'}}>
+                            <div className="lp-nav-logo-icon"><i className="fas fa-trophy"></i></div>
+                            <span>QuizMaster <span style={{color:'var(--gold)'}}>Elite</span></span>
+                        </div>
+                        <p className="lp-footer-brand-desc">
+                            Empowering academic excellence through technology. 
+                            The official quiz competition platform for Jigawa State schools.
+                        </p>
+                    </div>
+                    <div className="lp-footer-col">
+                        <h4>Platform</h4>
+                        <ul>
+                            <li><a href="#features">Features</a></li>
+                            <li><a href="#how">How it Works</a></li>
+                            <li><a href="#subjects">Subjects</a></li>
+                            <li><a href="#" onClick={e=>{e.preventDefault();onEnter();}}>Sign In</a></li>
+                        </ul>
+                    </div>
+                    <div className="lp-footer-col">
+                        <h4>Subjects</h4>
+                        <ul>
+                            {['Mathematics','Biology','Chemistry','Physics','English','Geography'].map(s=>(
+                                <li key={s}><a href="#subjects">{s}</a></li>
+                            ))}
+                        </ul>
+                    </div>
+                    <div className="lp-footer-col">
+                        <h4>Levels</h4>
+                        <ul>
+                            <li><a href="#">Primary School</a></li>
+                            <li><a href="#">Secondary School</a></li>
+                            <li><a href="#">Practice Mode</a></li>
+                            <li><a href="#">Live Competitions</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div className="lp-footer-bottom">
+                    <div className="lp-footer-copy">
+                        © 2026 QuizMaster Elite · Jigawa State Edition · All rights reserved
+                    </div>
+                    <div className="lp-footer-socials">
+                        {['fa-twitter','fa-facebook','fa-instagram','fa-youtube'].map(icon=>(
+                            <div key={icon} className="lp-social-btn"><i className={`fab ${icon}`}></i></div>
+                        ))}
+                    </div>
+                </div>
+            </footer>
+        </div>
+    );
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MAIN APP
+// ══════════════════════════════════════════════════════════════════════════════
+const App = () => {
+    const [user, setUser]         = useState(null);
+    const [menu, setMenu]         = useState('overview');
+    const [ready, setReady]       = useState(false);
+    const [showLanding, setShowLanding] = useState(false);
+
+    useEffect(() => {
+        const saved = localStorage.getItem('qm_user');
+        if (saved) { try { setUser(JSON.parse(saved)); } catch {} }
+        else { setShowLanding(true); }
+        setReady(true);
+    }, []);
+
+    const logout = () => {
+        localStorage.removeItem('qm_user');
+        setUser(null);
+        setMenu('overview');
+        setShowLanding(true);
+    };
+
+    if (!ready) return <div style={{display:'flex',justifyContent:'center',alignItems:'center',height:'100vh',background:'#050c0a'}}><div className="spinner"></div></div>;
+
+    // Show landing if not logged in
+    if (!user && showLanding) return <LandingPage onEnter={()=>setShowLanding(false)} />;
+
+    // Show login if landing was dismissed
+    if (!user) return <LoginPage onLogin={u=>{ setUser(u); setMenu('overview'); }} />;
+
+    const isAdmin = user.role === 'admin';
+
+    const renderPage = () => {
+        if (isAdmin) {
+            if (menu==='overview')     return <AdminOverview />;
+            if (menu==='students')     return <StudentManagement />;
+            if (menu==='questions')    return <QuestionManagement />;
+            if (menu==='competitions') return <CompetitionManagement />;
+            if (menu==='analytics')   return <AnalyticsDashboard />;
+        } else {
+            if (menu==='overview')     return <StudentOverview user={user} />;
+            if (menu==='competitions') return <StudentCompetitions user={user} />;
+            if (menu==='practice')     return <PracticeQuiz user={user} />;
+            if (menu==='results')      return <StudentResults user={user} />;
+        }
+    };
+
+    return (
+        <DashboardLayout user={user} activeMenu={menu} setActiveMenu={setMenu} onLogout={logout}>
+            {renderPage()}
+        </DashboardLayout>
+    );
+};
+
+ReactDOM.render(<App />, document.getElementById('root'));
+</script>
+</body>
+</html>
