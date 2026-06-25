@@ -5,12 +5,14 @@ import os
 from datetime import datetime, timedelta
 import secrets
 import hashlib
-from functools import wraps
 
-app = Flask(__name__, static_folder='static')
+# ─── APP SETUP ────────────────────────────────────────────────────────────────
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(32))
 
-# ─── CORS ────────────────────────────────────────────────────────────────────
+# ─── CORS ─────────────────────────────────────────────────────────────────────
 @app.after_request
 def after_request(response):
     origin = request.headers.get('Origin', '*')
@@ -22,18 +24,18 @@ def after_request(response):
         response.status_code = 200
     return response
 
-# ─── HELPERS ─────────────────────────────────────────────────────────────────
+# ─── HELPERS ──────────────────────────────────────────────────────────────────
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
 def get_db():
-    db_path = os.environ.get('DB_PATH', 'quiz_elite.db')
+    db_path = os.environ.get('DB_PATH', os.path.join(BASE_DIR, 'quiz_elite.db'))
     conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row          # access columns by name
+    conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
-# ─── DB INIT ─────────────────────────────────────────────────────────────────
+# ─── DB INIT ──────────────────────────────────────────────────────────────────
 def init_db():
     conn = get_db()
     c = conn.cursor()
@@ -124,20 +126,20 @@ def init_db():
         );
 
         CREATE TABLE IF NOT EXISTS scoreboard (
-            id             INTEGER PRIMARY KEY AUTOINCREMENT,
-            competition_id INTEGER,
-            user_id        INTEGER,
-            total_points   INTEGER DEFAULT 0,
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            competition_id  INTEGER,
+            user_id         INTEGER,
+            total_points    INTEGER DEFAULT 0,
             correct_answers INTEGER DEFAULT 0,
-            bonus_points   INTEGER DEFAULT 0,
-            updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            bonus_points    INTEGER DEFAULT 0,
+            updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             UNIQUE(competition_id, user_id),
             FOREIGN KEY (competition_id) REFERENCES competitions(id),
-            FOREIGN KEY (user_id)       REFERENCES users(id)
+            FOREIGN KEY (user_id)        REFERENCES users(id)
         );
     ''')
 
-    # Seed data only if no admin exists
+    # Seed only if no admin exists yet
     c.execute("SELECT COUNT(*) FROM users WHERE role = 'admin'")
     if c.fetchone()[0] == 0:
         admin_pass = hash_password('admin123')
@@ -147,41 +149,41 @@ def init_db():
 
         student_pass = hash_password('student123')
         students = [
-            ('student1', student_pass, 'student1@school.com', 'Amina Yusuf',      'student', 'Government Secondary School Dutse',   'Secondary School'),
-            ('student2', student_pass, 'student2@school.com', 'Ibrahim Hassan',   'student', 'Federal Government College Kazaure',   'Secondary School'),
-            ('student3', student_pass, 'student3@school.com', 'Fatima Abubakar', 'student', 'Unity Secondary School Hadejia',       'Secondary School'),
-            ('student4', student_pass, 'student4@school.com', 'Musa Sani',        'student', 'Government Secondary School Dutse',   'Secondary School'),
-            ('student5', student_pass, 'student5@school.com', 'Hauwa Mohammed',   'student', 'Federal Government College Kazaure',   'Primary School'),
-            ('student6', student_pass, 'student6@school.com', 'Aliyu Bello',      'student', 'Unity Secondary School Hadejia',       'Primary School'),
+            ('student1', student_pass, 'student1@school.com', 'Amina Yusuf',     'student', 'Government Secondary School Dutse',  'Secondary School'),
+            ('student2', student_pass, 'student2@school.com', 'Ibrahim Hassan',  'student', 'Federal Government College Kazaure',  'Secondary School'),
+            ('student3', student_pass, 'student3@school.com', 'Fatima Abubakar','student', 'Unity Secondary School Hadejia',      'Secondary School'),
+            ('student4', student_pass, 'student4@school.com', 'Musa Sani',       'student', 'Government Secondary School Dutse',  'Secondary School'),
+            ('student5', student_pass, 'student5@school.com', 'Hauwa Mohammed',  'student', 'Federal Government College Kazaure',  'Primary School'),
+            ('student6', student_pass, 'student6@school.com', 'Aliyu Bello',     'student', 'Unity Secondary School Hadejia',      'Primary School'),
         ]
         c.executemany("""INSERT INTO users (username, password, email, full_name, role, school, student_level)
                          VALUES (?, ?, ?, ?, ?, ?, ?)""", students)
 
         questions = [
-            (1,  'What is the powerhouse of the cell?',                    'Nucleus','Mitochondria','Ribosome','Chloroplast',    'B','Biology',     'Easy',  'Secondary School', 10),
-            (2,  'Which blood type is the universal donor?',               'A','B','AB','O',                                    'D','Biology',     'Medium','Secondary School', 15),
-            (3,  'By which process do plants make their food?',            'Respiration','Photosynthesis','Digestion','Absorption','B','Biology',   'Easy',  'Secondary School', 10),
-            (4,  'How many chambers does the human heart have?',           '2','3','4','5',                                     'C','Biology',     'Easy',  'Primary School',   10),
-            (5,  'What is the largest organ in the human body?',           'Liver','Brain','Skin','Heart',                      'C','Biology',     'Medium','Secondary School', 15),
-            (6,  'What is the square root of 144?',                        '10','11','12','13',                                 'C','Mathematics', 'Easy',  'Secondary School', 10),
-            (7,  'What is 15% of 200?',                                    '20','25','30','35',                                 'C','Mathematics', 'Medium','Secondary School', 15),
-            (8,  'What is the value of π (pi) to 2 decimal places?',      '3.12','3.14','3.16','3.18',                         'B','Mathematics', 'Easy',  'Secondary School', 10),
-            (9,  'If x + 5 = 12, what is x?',                             '5','6','7','8',                                    'C','Mathematics', 'Easy',  'Primary School',   10),
-            (10, 'What is 7 × 8?',                                         '54','56','58','60',                                'B','Mathematics', 'Easy',  'Primary School',   10),
-            (11, 'What is the speed of light in vacuum?',                  '3×10⁸ m/s','2×10⁸ m/s','4×10⁸ m/s','5×10⁸ m/s', 'A','Physics',     'Medium','Secondary School', 15),
-            (12, 'What is the SI unit of force?',                          'Joule','Newton','Watt','Pascal',                    'B','Physics',     'Easy',  'Secondary School', 10),
-            (13, 'What force keeps planets in orbit around the sun?',      'Magnetic','Gravitational','Electric','Nuclear',     'B','Physics',     'Easy',  'Secondary School', 10),
-            (14, 'What is the chemical symbol for Gold?',                  'Go','Gd','Au','Ag',                                'C','Chemistry',   'Easy',  'Secondary School', 10),
-            (15, 'What is the atomic number of Carbon?',                   '4','6','8','12',                                   'B','Chemistry',   'Easy',  'Secondary School', 10),
-            (16, 'What is H₂O commonly known as?',                        'Hydrogen Peroxide','Water','Hydrochloric Acid','Hydroxide','B','Chemistry','Easy','Primary School',  10),
-            (17, 'What is the plural of "child"?',                         'Childs','Childes','Children','Childrens',           'C','English',     'Easy',  'Primary School',   10),
-            (18, 'Which of these is a verb?',                              'Beautiful','Run','Happiness','Blue',                'B','English',     'Easy',  'Secondary School', 10),
+            (1,  'What is the powerhouse of the cell?',                    'Nucleus','Mitochondria','Ribosome','Chloroplast',        'B','Biology',     'Easy',  'Secondary School', 10),
+            (2,  'Which blood type is the universal donor?',               'A','B','AB','O',                                        'D','Biology',     'Medium','Secondary School', 15),
+            (3,  'By which process do plants make their food?',            'Respiration','Photosynthesis','Digestion','Absorption',  'B','Biology',     'Easy',  'Secondary School', 10),
+            (4,  'How many chambers does the human heart have?',           '2','3','4','5',                                         'C','Biology',     'Easy',  'Primary School',   10),
+            (5,  'What is the largest organ in the human body?',           'Liver','Brain','Skin','Heart',                          'C','Biology',     'Medium','Secondary School', 15),
+            (6,  'What is the square root of 144?',                        '10','11','12','13',                                     'C','Mathematics', 'Easy',  'Secondary School', 10),
+            (7,  'What is 15% of 200?',                                    '20','25','30','35',                                     'C','Mathematics', 'Medium','Secondary School', 15),
+            (8,  'What is the value of π (pi) to 2 decimal places?',      '3.12','3.14','3.16','3.18',                             'B','Mathematics', 'Easy',  'Secondary School', 10),
+            (9,  'If x + 5 = 12, what is x?',                             '5','6','7','8',                                        'C','Mathematics', 'Easy',  'Primary School',   10),
+            (10, 'What is 7 × 8?',                                         '54','56','58','60',                                    'B','Mathematics', 'Easy',  'Primary School',   10),
+            (11, 'What is the speed of light in vacuum?',                  '3×10⁸ m/s','2×10⁸ m/s','4×10⁸ m/s','5×10⁸ m/s',    'A','Physics',     'Medium','Secondary School', 15),
+            (12, 'What is the SI unit of force?',                          'Joule','Newton','Watt','Pascal',                        'B','Physics',     'Easy',  'Secondary School', 10),
+            (13, 'What force keeps planets in orbit around the sun?',      'Magnetic','Gravitational','Electric','Nuclear',         'B','Physics',     'Easy',  'Secondary School', 10),
+            (14, 'What is the chemical symbol for Gold?',                  'Go','Gd','Au','Ag',                                    'C','Chemistry',   'Easy',  'Secondary School', 10),
+            (15, 'What is the atomic number of Carbon?',                   '4','6','8','12',                                       'B','Chemistry',   'Easy',  'Secondary School', 10),
+            (16, 'What is H₂O commonly known as?',                        'Hydrogen Peroxide','Water','Hydrochloric Acid','Hydroxide','B','Chemistry','Easy','Primary School',   10),
+            (17, 'What is the plural of "child"?',                         'Childs','Childes','Children','Childrens',               'C','English',     'Easy',  'Primary School',   10),
+            (18, 'Which of these is a verb?',                              'Beautiful','Run','Happiness','Blue',                    'B','English',     'Easy',  'Secondary School', 10),
             (19, 'What is a noun?',                                        'An action word','A naming word','A describing word','A connecting word','B','English','Easy','Primary School',10),
-            (20, 'What punctuation mark ends a question?',                 'Period','Comma','Question mark','Exclamation mark', 'C','English',     'Easy',  'Primary School',   10),
-            (21, 'What is the capital of Nigeria?',                        'Lagos','Abuja','Kano','Port Harcourt',              'B','Geography',   'Easy',  'Secondary School', 10),
-            (22, 'Which is the largest ocean on Earth?',                   'Atlantic','Indian','Arctic','Pacific',              'D','Geography',   'Easy',  'Secondary School', 10),
-            (23, 'How many continents are there?',                         '5','6','7','8',                                    'C','Geography',   'Easy',  'Primary School',   10),
-            (24, 'What is the longest river in the world?',                'Amazon','Nile','Mississippi','Yangtze',             'B','Geography',   'Medium','Secondary School', 15),
+            (20, 'What punctuation mark ends a question?',                 'Period','Comma','Question mark','Exclamation mark',     'C','English',     'Easy',  'Primary School',   10),
+            (21, 'What is the capital of Nigeria?',                        'Lagos','Abuja','Kano','Port Harcourt',                  'B','Geography',   'Easy',  'Secondary School', 10),
+            (22, 'Which is the largest ocean on Earth?',                   'Atlantic','Indian','Arctic','Pacific',                  'D','Geography',   'Easy',  'Secondary School', 10),
+            (23, 'How many continents are there?',                         '5','6','7','8',                                        'C','Geography',   'Easy',  'Primary School',   10),
+            (24, 'What is the longest river in the world?',                'Amazon','Nile','Mississippi','Yangtze',                 'B','Geography',   'Medium','Secondary School', 15),
         ]
         c.executemany("""INSERT INTO questions
                          (question_number, question_text, option_a, option_b, option_c, option_d,
@@ -213,16 +215,12 @@ def init_db():
     conn.commit()
     conn.close()
 
-# ─── STATIC / INDEX ──────────────────────────────────────────────────────────
+# ─── STATIC / INDEX ───────────────────────────────────────────────────────────
 @app.route('/')
 def index():
-    return send_from_directory('.', 'index.html')
+    return send_from_directory(BASE_DIR, 'index.html')
 
-@app.route('/static/<path:filename>')
-def static_files(filename):
-    return send_from_directory('static', filename)
-
-# ─── AUTH ────────────────────────────────────────────────────────────────────
+# ─── AUTH ─────────────────────────────────────────────────────────────────────
 @app.route('/api/auth/login', methods=['POST', 'OPTIONS'])
 def login():
     if request.method == 'OPTIONS':
@@ -254,7 +252,7 @@ def login():
         })
     return jsonify({'success': False, 'error': 'Invalid credentials'}), 401
 
-# ─── ADMIN – USERS ───────────────────────────────────────────────────────────
+# ─── ADMIN – USERS ────────────────────────────────────────────────────────────
 @app.route('/api/admin/users', methods=['GET', 'POST', 'OPTIONS'])
 def manage_users():
     if request.method == 'OPTIONS':
@@ -266,13 +264,11 @@ def manage_users():
     if request.method == 'GET':
         c.execute('SELECT * FROM users ORDER BY created_at DESC')
         users = [dict(row) for row in c.fetchall()]
-        # remove password from response
         for u in users:
             u.pop('password', None)
         conn.close()
         return jsonify(users)
 
-    # POST – create user
     data = request.json or {}
     password = secrets.token_urlsafe(8)
     try:
@@ -321,7 +317,7 @@ def manage_user(user_id):
         conn.close()
         return jsonify({'success': True})
 
-# ─── ADMIN – QUESTIONS ───────────────────────────────────────────────────────
+# ─── ADMIN – QUESTIONS ────────────────────────────────────────────────────────
 @app.route('/api/admin/questions', methods=['GET', 'POST', 'OPTIONS'])
 def manage_questions():
     if request.method == 'OPTIONS':
@@ -347,7 +343,6 @@ def manage_questions():
         conn.close()
         return jsonify(questions)
 
-    # POST
     data = request.json or {}
     try:
         c.execute("""INSERT INTO questions
@@ -376,7 +371,7 @@ def delete_question(question_id):
     conn.close()
     return jsonify({'success': True})
 
-# ─── ADMIN – COMPETITIONS ────────────────────────────────────────────────────
+# ─── ADMIN – COMPETITIONS ─────────────────────────────────────────────────────
 @app.route('/api/admin/competitions', methods=['GET', 'POST', 'OPTIONS'])
 def manage_competitions():
     if request.method == 'OPTIONS':
@@ -387,7 +382,7 @@ def manage_competitions():
 
     if request.method == 'GET':
         c.execute('''SELECT c.*,
-                     COUNT(DISTINCT cp.user_id)   AS participant_count,
+                     COUNT(DISTINCT cp.user_id)    AS participant_count,
                      COUNT(DISTINCT cq.question_id) AS assigned_question_count
                      FROM competitions c
                      LEFT JOIN competition_participants cp ON c.id = cp.competition_id
@@ -398,7 +393,6 @@ def manage_competitions():
         conn.close()
         return jsonify(competitions)
 
-    # POST – create competition
     data = request.json or {}
     try:
         c.execute("""INSERT INTO competitions
@@ -481,7 +475,6 @@ def start_competition(comp_id):
     c    = conn.cursor()
     c.execute("UPDATE competitions SET status='live', start_time=? WHERE id=?",
               (datetime.now().isoformat(), comp_id))
-    # initialise scoreboard rows for every participant
     c.execute("SELECT user_id FROM competition_participants WHERE competition_id=?", (comp_id,))
     for row in c.fetchall():
         c.execute("INSERT OR IGNORE INTO scoreboard (competition_id, user_id, total_points, correct_answers) VALUES (?,?,0,0)",
@@ -501,10 +494,9 @@ def end_competition(comp_id):
     conn.close()
     return jsonify({'success': True})
 
-# ─── STUDENT ROUTES ──────────────────────────────────────────────────────────
+# ─── STUDENT ROUTES ───────────────────────────────────────────────────────────
 @app.route('/api/student/competitions', methods=['GET', 'OPTIONS'])
 def get_student_competitions():
-    """Return all competitions the student is enrolled in."""
     if request.method == 'OPTIONS':
         return jsonify({}), 200
 
@@ -518,8 +510,8 @@ def get_student_competitions():
                  c.student_level, c.duration_minutes, c.status, c.start_time,
                  c.competition_type,
                  COUNT(DISTINCT cq.question_id) AS question_count,
-                 COALESCE(s.total_points, 0)     AS my_score,
-                 COALESCE(s.correct_answers, 0)  AS my_correct
+                 COALESCE(s.total_points, 0)    AS my_score,
+                 COALESCE(s.correct_answers, 0) AS my_correct
                  FROM competitions c
                  JOIN competition_participants cp ON c.id = cp.competition_id
                  LEFT JOIN competition_questions cq ON c.id = cq.competition_id
@@ -533,15 +525,12 @@ def get_student_competitions():
 
 @app.route('/api/competition/<int:comp_id>/questions', methods=['GET', 'OPTIONS'])
 def get_competition_questions(comp_id):
-    """Return questions for a competition (answers hidden for students)."""
     if request.method == 'OPTIONS':
         return jsonify({}), 200
 
-    # BUG FIX: original code exposed correct_answer – now hidden for student-facing calls
     conn = get_db()
     c    = conn.cursor()
 
-    # Verify competition is live or allow admin preview
     c.execute("SELECT status FROM competitions WHERE id=?", (comp_id,))
     comp = c.fetchone()
     if not comp:
@@ -580,7 +569,7 @@ def submit_competition(comp_id):
 
     data    = request.json or {}
     user_id = data.get('user_id')
-    answers = data.get('answers', {})   # {question_id: selected_option}
+    answers = data.get('answers', {})
 
     if not user_id:
         return jsonify({'error': 'user_id required'}), 400
@@ -588,7 +577,6 @@ def submit_competition(comp_id):
     conn = get_db()
     c    = conn.cursor()
 
-    # Verify participant
     c.execute("SELECT id FROM competition_participants WHERE competition_id=? AND user_id=?",
               (comp_id, user_id))
     if not c.fetchone():
@@ -609,13 +597,11 @@ def submit_competition(comp_id):
             score         += pts
             correct_count += 1
 
-        # Upsert answer
         c.execute("""INSERT OR REPLACE INTO answer_submissions
                      (competition_id, question_id, user_id, answer, is_correct, points_awarded)
                      VALUES (?,?,?,?,?,?)""",
                   (comp_id, q_id, user_id, answer, is_correct, pts))
 
-    # Upsert scoreboard
     c.execute("""INSERT OR REPLACE INTO scoreboard
                  (competition_id, user_id, total_points, correct_answers, updated_at)
                  VALUES (?,?,?,?,?)""",
@@ -643,7 +629,6 @@ def get_scoreboard(comp_id):
 
 @app.route('/api/student/results', methods=['GET', 'OPTIONS'])
 def get_student_results():
-    """Return a student's full result history across all competitions."""
     if request.method == 'OPTIONS':
         return jsonify({}), 200
 
@@ -666,7 +651,7 @@ def get_student_results():
     conn.close()
     return jsonify(results)
 
-# ─── PRACTICE QUIZ ───────────────────────────────────────────────────────────
+# ─── PRACTICE QUIZ ────────────────────────────────────────────────────────────
 @app.route('/api/practice/questions', methods=['GET', 'OPTIONS'])
 def get_practice_questions():
     if request.method == 'OPTIONS':
@@ -711,9 +696,9 @@ def submit_practice():
     data    = request.json or {}
     answers = data.get('answers', {})
 
-    conn  = get_db()
-    c     = conn.cursor()
-    score = total = 0
+    conn    = get_db()
+    c       = conn.cursor()
+    score   = total = 0
     details = []
 
     for q_id, answer in answers.items():
@@ -725,12 +710,12 @@ def submit_practice():
             if is_correct:
                 score += row['points']
             details.append({
-                'question_id':     int(q_id),
-                'question_text':   row['question_text'],
-                'your_answer':     answer,
-                'correct_answer':  row['correct_answer'],
-                'is_correct':      is_correct,
-                'points':          row['points'],
+                'question_id':    int(q_id),
+                'question_text':  row['question_text'],
+                'your_answer':    answer,
+                'correct_answer': row['correct_answer'],
+                'is_correct':     is_correct,
+                'points':         row['points'],
             })
 
     conn.close()
@@ -741,7 +726,7 @@ def submit_practice():
         'details':    details,
     })
 
-# ─── ANALYTICS ───────────────────────────────────────────────────────────────
+# ─── ANALYTICS ────────────────────────────────────────────────────────────────
 @app.route('/api/analytics/dashboard', methods=['GET', 'OPTIONS'])
 def get_analytics():
     if request.method == 'OPTIONS':
@@ -826,9 +811,11 @@ def get_analytics():
         'competition_stats':   competition_stats,
     })
 
-# ─── ENTRY POINT ─────────────────────────────────────────────────────────────
+# ─── INIT DB ON MODULE LOAD (works with both gunicorn and direct python) ──────
+init_db()
+
+# ─── ENTRY POINT (local dev only) ─────────────────────────────────────────────
 if __name__ == '__main__':
-    init_db()
     port  = int(os.environ.get('PORT', 5000))
-    debug = os.environ.get('FLASK_DEBUG', 'true').lower() == 'true'
+    debug = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
     app.run(host='0.0.0.0', port=port, debug=debug, threaded=True)

@@ -6,7 +6,7 @@
     <title>QuizMaster Elite – Jigawa Edition</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.29.7/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -504,17 +504,16 @@
 </head>
 <body>
 <div id="root"></div>
-<script type="text/babel">
+<script type="text/babel" data-presets="react">
 const { useState, useEffect, useRef, useCallback } = React;
 
-// ── API base – auto-detects Codespaces vs localhost ────────────────────────
+// ── API base – works on Render (same origin) and localhost ──────────────────
 const API_BASE = (() => {
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         return 'http://localhost:5000/api';
     }
-    // GitHub Codespaces: replace port 80/443 with 5000 in the forwarded URL
-    const { protocol, hostname } = window.location;
-    return `${protocol}//${hostname.replace('-80.', '-5000.')}/api`;
+    // On Render, Flask serves both frontend and API from the same origin
+    return '/api';
 })();
 
 const api = {
@@ -566,7 +565,7 @@ const LoginPage = ({ onLogin }) => {
         try {
             const data = await api.post('/auth/login', form);
             if (data.success) {
-                localStorage.setItem('qm_user', JSON.stringify(data.user));
+                try { localStorage.setItem('qm_user', JSON.stringify(data.user)); } catch(e) {}
                 onLogin(data.user);
             } else {
                 setError(data.error || 'Invalid credentials');
@@ -1913,15 +1912,20 @@ const App = () => {
     const [ready, setReady]       = useState(false);
     const [showLanding, setShowLanding] = useState(false);
 
+    // Safe storage helpers - gracefully handle browsers blocking localStorage
+    const storageGet = (key) => { try { return localStorage.getItem(key); } catch(e) { return null; } };
+    const storageSet = (key, val) => { try { localStorage.setItem(key, val); } catch(e) {} };
+    const storageDel = (key) => { try { localStorage.removeItem(key); } catch(e) {} };
+
     useEffect(() => {
-        const saved = localStorage.getItem('qm_user');
-        if (saved) { try { setUser(JSON.parse(saved)); } catch {} }
+        const saved = storageGet('qm_user');
+        if (saved) { try { setUser(JSON.parse(saved)); } catch(e) {} }
         else { setShowLanding(true); }
         setReady(true);
     }, []);
 
     const logout = () => {
-        localStorage.removeItem('qm_user');
+        storageDel('qm_user');
         setUser(null);
         setMenu('overview');
         setShowLanding(true);
