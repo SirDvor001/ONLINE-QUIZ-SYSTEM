@@ -1,4 +1,4 @@
-# QuizMaster Elite – Jigawa State Edition
+# ONLINE QUIZ SYSTEM
 
 A full-stack quiz/competition platform for schools, built with Flask + React (no build step needed).
 
